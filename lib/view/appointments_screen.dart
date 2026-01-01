@@ -13,29 +13,20 @@ class AppointmentsScreen extends StatelessWidget {
       create: (_) => AppointmentController(),
       child: Consumer<AppointmentController>(
         builder: (context, controller, child) {
-          return Scaffold(
-            appBar: AppBar(
-              backgroundColor: const Color(0xFF4A2C3F),
-              title: const Text('My Appointments', style: TextStyle(color: Colors.white)),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-            body: Column(
-              children: [
-                _buildTabBar(context, controller),
-                _buildSearchBar(context, controller),
-                Expanded(child: _buildAppointmentList(context, controller)),
-              ],
-            ),
+          return Column(
+            children: [
+              _buildTabBar(controller),
+              _buildSearchBar(controller),
+              Expanded(child: _buildAppointmentList(controller)),
+            ],
           );
         },
       ),
     );
   }
 
-  Widget _buildTabBar(BuildContext context, AppointmentController controller) {
+  /// TAB BAR
+  Widget _buildTabBar(AppointmentController controller) {
     return Container(
       color: Colors.grey[100],
       child: Row(
@@ -45,13 +36,13 @@ class AppointmentsScreen extends StatelessWidget {
           return GestureDetector(
             onTap: () => controller.changeTab(status),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              padding: const EdgeInsets.symmetric(vertical: 16),
               child: Column(
                 children: [
                   Text(
-                    status.name.substring(0, 1).toUpperCase() + status.name.substring(1),
+                    status.name[0].toUpperCase() + status.name.substring(1),
                     style: TextStyle(
-                      color: isSelected ? const Color(0xFF4A2C3F) : Colors.grey[600],
+                      color: isSelected ? const Color(0xFF4A2C3F) : Colors.grey,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
@@ -71,22 +62,16 @@ class AppointmentsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchBar(BuildContext context, AppointmentController controller) {
+  /// SEARCH BAR
+  Widget _buildSearchBar(AppointmentController controller) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16),
       child: TextField(
-        onChanged: (value) => controller.search(value),
+        onChanged: controller.search,
         decoration: InputDecoration(
           hintText: 'Search Salon or Service',
           prefixIcon: const Icon(Icons.search),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFF4A2C3F)),
@@ -96,47 +81,47 @@ class AppointmentsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAppointmentList(BuildContext context, AppointmentController controller) {
+  /// APPOINTMENT LIST
+  Widget _buildAppointmentList(AppointmentController controller) {
     if (controller.filteredAppointments.isEmpty) {
       return const Center(
-        child: Text('No appointments found.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+        child: Text('No appointments found', style: TextStyle(color: Colors.grey)),
       );
     }
+
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       itemCount: controller.filteredAppointments.length,
       itemBuilder: (context, index) {
         final appointment = controller.filteredAppointments[index];
-        return _buildAppointmentCard(context, controller, appointment);
+        return _buildAppointmentCard(controller, appointment);
       },
     );
   }
 
-  Widget _buildAppointmentCard(BuildContext context, AppointmentController controller, Appointment appointment) {
+  /// APPOINTMENT CARD
+  Widget _buildAppointmentCard(AppointmentController controller, Appointment appointment) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16.0),
+      margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Row(
               children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(appointment.status),
-                    shape: BoxShape.circle,
-                  ),
-                ),
+                const CircleAvatar(radius: 6, backgroundColor: Colors.teal),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(appointment.salonName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(appointment.salonName, style: const TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
                       Text(appointment.serviceName, style: TextStyle(color: Colors.grey[600])),
                     ],
@@ -145,57 +130,58 @@ class AppointmentsScreen extends StatelessWidget {
                 if (appointment.status == AppointmentStatus.upcoming)
                   OutlinedButton(
                     onPressed: () => controller.cancelAppointment(appointment),
-                    style: OutlinedButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      side: BorderSide(color: Colors.grey.shade400),
-                    ),
-                    child: const Text('Cancel', style: TextStyle(color: Colors.black87)),
+                    child: const Text('Cancel'),
+                  ),
+                if (appointment.status == AppointmentStatus.completed)
+                  OutlinedButton(
+                    onPressed: () {},
+                    child: const Text('Write Review'),
                   ),
               ],
             ),
-            const Divider(height: 24),
-            _buildDetailRow(Icons.calendar_today_outlined, 'Date and Time', DateFormat('EEEE, d MMM yyyy - hh:mm a').format(appointment.dateTime)),
-            const Divider(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                const Text('Total Amount', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('₹ ${appointment.totalAmount.toStringAsFixed(2)}/-', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 16)),
+                _detailRow(
+                  Icons.calendar_today,
+                  'Date & Time',
+                  DateFormat('EEEE, d MMM yyyy - hh:mm a').format(appointment.dateTime),
+                ),
+                const Divider(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Total Amount', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      '₹ ${appointment.totalAmount.toStringAsFixed(2)}/-',
+                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String title, String value) {
+  Widget _detailRow(IconData icon, String title, String value) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey.shade700),
+        Icon(icon, size: 20, color: Colors.grey),
         const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: TextStyle(color: Colors.grey.shade700, fontSize: 14)),
+            Text(title, style: const TextStyle(color: Colors.grey)),
             const SizedBox(height: 4),
-            Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
       ],
     );
-  }
-
-  Color _getStatusColor(AppointmentStatus status) {
-    switch (status) {
-      case AppointmentStatus.upcoming:
-        return Colors.green;
-      case AppointmentStatus.completed:
-        return Colors.blue;
-      case AppointmentStatus.missed:
-        return Colors.orange;
-      case AppointmentStatus.cancelled:
-        return Colors.red;
-    }
   }
 }

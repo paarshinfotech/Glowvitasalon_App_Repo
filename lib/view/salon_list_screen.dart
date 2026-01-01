@@ -12,44 +12,36 @@ class SalonListScreen extends StatelessWidget {
       create: (_) => SalonListController(),
       child: Consumer<SalonListController>(
         builder: (context, controller, child) {
-          return Scaffold(
-            appBar: AppBar(
-              backgroundColor: const Color(0xFF4A2C3F),
-              title: const Text('Salons', style: TextStyle(color: Colors.white)),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSearchBar(context, controller),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  '${controller.filteredSalons.length} Salons Found',
+                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                ),
               ),
-            ),
-            body: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSearchBar(context, controller),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    '${controller.filteredSalons.length} Salons Found',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 0.6,
                   ),
+                  itemCount: controller.filteredSalons.length,
+                  itemBuilder: (context, index) {
+                    final salon = controller.filteredSalons[index];
+                    return _buildSalonCard(salon);
+                  },
                 ),
-                Expanded(
-                  child: GridView.builder(
-                    padding: const EdgeInsets.all(16.0),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.6,
-                    ),
-                    itemCount: controller.filteredSalons.length,
-                    itemBuilder: (context, index) {
-                      final salon = controller.filteredSalons[index];
-                      return _buildSalonCard(context, salon);
-                    },
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
@@ -58,20 +50,13 @@ class SalonListScreen extends StatelessWidget {
 
   Widget _buildSearchBar(BuildContext context, SalonListController controller) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16),
       child: TextField(
-        onChanged: (value) => controller.search(value),
+        onChanged: controller.search,
         decoration: InputDecoration(
           hintText: 'Search salons by name, city or add..',
           prefixIcon: const Icon(Icons.search),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFF4A2C3F)),
@@ -81,19 +66,15 @@ class SalonListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSalonCard(BuildContext context, Salon salon) {
+  Widget _buildSalonCard(Salon salon) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.1),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(16),
-              topRight: Radius.circular(16),
-            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             child: Image.network(
               salon.imageUrl,
               height: 120,
@@ -102,29 +83,22 @@ class SalonListScreen extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(salon.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    Row(
-                      children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 16),
-                        const SizedBox(width: 4),
-                        Text(salon.rating.toString(), style: const TextStyle(fontSize: 12)),
-                      ],
-                    ),
-                  ],
+                Text(
+                  salon.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Text(salon.salonType, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.location_on, color: Colors.red, size: 16),
+                    const Icon(Icons.location_on, size: 14, color: Colors.red),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -135,26 +109,6 @@ class SalonListScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.person, color: Colors.green, size: 16),
-                    const SizedBox(width: 4),
-                    Text('${salon.clientCount}+ Clients', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                  ],
-                ),
-                if (salon.hasNewOffer)
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text('NEW OFFER', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
               ],
             ),
           ),

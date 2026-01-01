@@ -355,7 +355,12 @@ class _ProductPageState extends State<ProductPage> {
       onTap: () {
         if (index == 0) {
           Navigator.pushReplacementNamed(context, AppRoutes.home);
-        } else {
+        }else if (index == 1) {
+          Navigator.pushReplacementNamed(context, AppRoutes.salonList);
+        }else if (index == 2){
+          Navigator.pushReplacementNamed(context, AppRoutes.appointment);
+        }
+        else {
           setState(() {
             _currentIndex = index;
           });

@@ -64,27 +64,46 @@ class _SelectStaffScreenState extends State<SelectStaffScreen> {
           );
         },
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton(
-          onPressed: _selectedStaff.length == widget.selectedServices.length
-              ? () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SelectDateTimeScreen(
-                        selectedServices: widget.selectedServices,
-                        selectedStaff: _selectedStaff,
-                      ),
-                    ),
-                  );
-                }
-              : null,
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            backgroundColor: Colors.pink,
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.pink, padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    side: const BorderSide(color: Colors.pink),
+                  ),
+                  child: const Text('Back', style: TextStyle(fontSize: 18)),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _selectedStaff.length == widget.selectedServices.length
+                      ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SelectDateTimeScreen(
+                                selectedServices: widget.selectedServices,
+                                selectedStaff: _selectedStaff,
+                              ),
+                            ),
+                          );
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    backgroundColor: Colors.pink,
+                  ),
+                  child: const Text('Continue', style: TextStyle(fontSize: 18, color: Colors.white)),
+                ),
+              ),
+            ],
           ),
-          child: const Text('Next', style: TextStyle(fontSize: 18, color: Colors.white)),
         ),
       ),
     );

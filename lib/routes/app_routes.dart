@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../model/salon.dart';
+import '../view/appointments_screen.dart';
 import '../view/home.dart';
 import '../view/login_screen.dart';
 import '../view/map_picker_screen.dart';
+import '../view/notification_screen.dart';
 import '../view/register_screen.dart';
+import '../view/salon_list_screen.dart';
 import '../view/salondetails_screen.dart';
 import '../view/booking_screen.dart';
 import '../view/product_details_screen.dart';
@@ -19,6 +22,10 @@ class AppRoutes {
   static const String register = '/register';
   static const String mappicker = '/mappicker';
   static const String products = '/products';
+  static const String appointment = '/appointment';
+  static const String notification = '/notification';
+  static const String salonList = '/salonList';
+
 
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -33,6 +40,13 @@ class AppRoutes {
           return MaterialPageRoute(builder: (_) => const MapPickerScreen());
       case products:
           return MaterialPageRoute(builder: (_) => const ProductPage());
+      case appointment:
+          return MaterialPageRoute(builder: (_) => const AppointmentsScreen());
+      case salonList:
+          return MaterialPageRoute(builder: (_) => const SalonListScreen());
+      case notification:
+          return MaterialPageRoute(builder: (_) => const NotificationScreen());
+
       case salonDetails:
         if (settings.arguments is Salon) {
           final salon = settings.arguments as Salon;
@@ -51,11 +65,17 @@ class AppRoutes {
         }
         return _errorRoute();
       case booking:
-        if (settings.arguments is List<String>) {
-          final selectedServices = settings.arguments as List<String>;
+        if (settings.arguments is Map<String, dynamic>) {
+          final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
-              builder: (_) =>
-                  BookingScreen(selectedServices: selectedServices));
+            builder: (_) => BookingScreen(
+              selectedServices: List<String>.from(args['selectedServices'] as List),
+              selectedStaff: Map<String, String>.from(args['selectedStaff'] as Map),
+              selectedDate: args['selectedDate'] as DateTime,
+              selectedTime: args['selectedTime'] as String,
+              totalAmount: args['totalAmount'] as double,
+            ),
+          );
         }
         return _errorRoute();
       case productDetails:

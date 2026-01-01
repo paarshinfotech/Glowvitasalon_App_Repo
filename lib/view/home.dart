@@ -4,7 +4,9 @@ import 'package:glow_vita_salon/model/category.dart';
 import 'package:glow_vita_salon/model/offers.dart';
 import 'package:glow_vita_salon/model/salon.dart';
 import 'package:glow_vita_salon/services/api_service.dart';
+import 'package:glow_vita_salon/view/appointments_screen.dart';
 import 'package:glow_vita_salon/view/map_picker_screen.dart';
+import 'package:glow_vita_salon/view/salon_list_screen.dart';
 import 'package:glow_vita_salon/widget/product_card.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:glow_vita_salon/model/product.dart';
@@ -26,6 +28,14 @@ class _HomeState extends State<Home> {
   static bool _isManualLocationSet = false;
   int _currentIndex = 0;
   late Future<List<Product>> _productsFuture;
+
+  final List<Widget> _pages = [
+    const HomeScreenContent(),
+    const SalonListScreen(),
+    const AppointmentsScreen(),
+    Container(), // Placeholder for doctor
+    Container(), // Placeholder for products
+  ];
 
   @override
   void initState() {
@@ -113,128 +123,152 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        automaticallyImplyLeading: false,
-        title: Row(
-          children: const [
-            CircleAvatar(
-              radius: 22,
-              backgroundImage: NetworkImage("https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1160&q=80"),
-            ),
-            SizedBox(width: 12),
-            Text(
-              'Hii, Olivia Joy',
-              style: TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: Stack(
-              children: <Widget>[
-                Icon(Icons.notifications_none_outlined, color: Colors.grey.shade700, size: 28),
-                Positioned(
-                  right: 4,
-                  top: 4,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 8,
-                      minHeight: 8,
-                    ),
-                  ),
-                )
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: Icon(Icons.search, color: Colors.grey.shade700, size: 28),
-          ),
-          const SizedBox(width: 8),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(70.0),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 12.0),
-            child: _buildLocationHeader(),
-          ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _buildCategorySection(),
-            ),
-            const SizedBox(height: 20),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text("Special Offers", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: _buildOfferCarousel(),
-            ),
-            const SizedBox(height: 20),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text("Popular Salons", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: _buildPopularSalonList(),
-            ),
-            const SizedBox(height: 20),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text("Recommended for you", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: _buildRecommendedSalonList(),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("Latest Products", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  TextButton(
-                    onPressed: () => Navigator.pushNamed(context, AppRoutes.products),
-                    child: const Text("See All"),
-                  )
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _buildProductSection(),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
+      appBar: _buildAppBar(),
+      body: _pages[_currentIndex],
       bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    if (_currentIndex == 1) {
+      return AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: const Color(0xFF4A2C3F),
+        title: const Text('Salons', style: TextStyle(color: Colors.white)),
+      );
+    }
+    if (_currentIndex == 2) {
+      return AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: const Color(0xFF4A2C3F),
+        title: const Text('My Appointments', style: TextStyle(color: Colors.white)),
+      );
+    }
+    return AppBar(
+      elevation: 0,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      automaticallyImplyLeading: false,
+      title: Row(
+        children: const [
+          CircleAvatar(
+            radius: 22,
+            backgroundImage: NetworkImage("https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1160&q=80"),
+          ),
+          SizedBox(width: 12),
+          Text(
+            'Hii, Olivia Joy',
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        IconButton(
+          onPressed: () {
+            Navigator.pushNamed(context, AppRoutes.notification);
+          },
+          icon: Stack(
+            children: <Widget>[
+              Icon(Icons.notifications_none_outlined, color: Colors.grey.shade700, size: 28),
+              Positioned(
+                right: 4,
+                top: 4,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 8,
+                    minHeight: 8,
+                  ),
+                ),
+              )
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: () {},
+          icon: Icon(Icons.search, color: Colors.grey.shade700, size: 28),
+        ),
+        const SizedBox(width: 8),
+      ],
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(70.0),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 12.0),
+          child: _buildLocationHeader(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      height: 65,
+      decoration: const BoxDecoration(
+        color: Color(0xFF4A2C3F),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _navItem(FontAwesomeIcons.houseChimney, "Home", 0),
+          _navItem(FontAwesomeIcons.store, "Salons", 1),
+          _navItem(FontAwesomeIcons.solidCalendar, "Bookings", 2),
+          _navItem(FontAwesomeIcons.userDoctor, "doctor", 3),
+          _navItem(FontAwesomeIcons.boxOpen, "products", 4),
+        ],
+      ),
+    );
+  }
+
+  Widget _navItem(IconData icon, String label, int index) {
+    final bool isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () {
+        if (index == 4) {
+          Navigator.pushReplacementNamed(context, AppRoutes.products);
+        } else if (index == 2) {
+          setState(() {
+            _currentIndex = index;
+          });
+        } else {
+          setState(() {
+            _currentIndex = index;
+          });
+        }
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.white : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              icon,
+              size: 24,
+              color: isSelected ? const Color(0xFF4A2C3F) : Colors.white,
+            ),
+          ),
+          if (isSelected) ...[
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -575,63 +609,76 @@ class _HomeState extends State<Home> {
       },
     );
   }
+}
 
-  Widget _buildBottomNav() {
-    return Container(
-      height: 65,
-      decoration: const BoxDecoration(
-        color: Color(0xFF4A2C3F),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _navItem(FontAwesomeIcons.houseChimney, "Home", 0),
-          _navItem(FontAwesomeIcons.store, "Salons", 1),
-          _navItem(FontAwesomeIcons.solidCalendar, "Bookings", 2),
-          _navItem(FontAwesomeIcons.userDoctor, "doctor", 3),
-          _navItem(FontAwesomeIcons.boxOpen, "products", 4),
-        ],
-      ),
-    );
-  }
+class HomeScreenContent extends StatelessWidget {
+  const HomeScreenContent({super.key});
 
-  Widget _navItem(IconData icon, String label, int index) {
-    final bool isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () {
-        if (index == 4) {
-          Navigator.pushReplacementNamed(context, AppRoutes.products);
-        } else {
-          setState(() {
-            _currentIndex = index;
-          });
-        }
-      },
+  @override
+  Widget build(BuildContext context) {
+    final _HomeState? state = context.findAncestorStateOfType<_HomeState>();
+    if (state == null) {
+      return const Center(child: Text('Error: Could not find Home state'));
+    }
+    return SingleChildScrollView(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.white : Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              icon,
-              size: 24,
-              color: isSelected ? const Color(0xFF4A2C3F) : Colors.white,
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: state._buildCategorySection(),
+          ),
+          const SizedBox(height: 20),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text("Special Offers", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(left: 16.0),
+            child: state._buildOfferCarousel(),
+          ),
+          const SizedBox(height: 20),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text("Popular Salons", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(left: 16.0),
+            child: state._buildPopularSalonList(),
+          ),
+          const SizedBox(height: 20),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text("Recommended for you", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.only(left: 16.0),
+            child: state._buildRecommendedSalonList(),
+          ),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Latest Products", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, AppRoutes.products),
+                  child: const Text("See All"),
+                )
+              ],
             ),
           ),
-          if (isSelected) ...[
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-              ),
-            ),
-          ],
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: state._buildProductSection(),
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );

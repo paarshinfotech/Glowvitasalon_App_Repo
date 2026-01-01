@@ -3,7 +3,7 @@ import '../model/notification.dart';
 
 class NotificationController extends ChangeNotifier {
   NotificationController() {
-    _filteredNotifications = _allNotifications;
+    _filterNotifications();
   }
 
   final List<NotificationModel> _allNotifications = [
@@ -39,7 +39,7 @@ class NotificationController extends ChangeNotifier {
       type: NotificationType.offer,
       title: 'Special Offer Just For You!',
       message: 'Get 20% off on all facials this weekend! Book now!',
-      timeAgo: '3d ago', 
+      timeAgo: '3d ago',
       isRead: true,
     ),
     NotificationModel(
@@ -51,10 +51,12 @@ class NotificationController extends ChangeNotifier {
     ),
   ];
 
-  List<NotificationModel> _filteredNotifications = [];
+  late List<NotificationModel> _filteredNotifications;
   List<NotificationModel> get filteredNotifications => _filteredNotifications;
 
   bool _showUnread = false;
+  bool get showUnread => _showUnread;
+
   String _searchTerm = '';
 
   int get allCount => _allNotifications.length;
@@ -71,12 +73,23 @@ class NotificationController extends ChangeNotifier {
   }
 
   void _filterNotifications() {
-    _filteredNotifications = _allNotifications.where((notification) {
-      final matchesFilter = !_showUnread || !notification.isRead;
-      final matchesSearch = notification.title.toLowerCase().contains(_searchTerm) ||
-                            notification.message.toLowerCase().contains(_searchTerm);
-      return matchesFilter && matchesSearch;
-    }).toList();
+    List<NotificationModel> notifications;
+
+    if (_showUnread) {
+      notifications = _allNotifications.where((n) => !n.isRead).toList();
+    } else {
+      notifications = _allNotifications.toList();
+    }
+
+    if (_searchTerm.isNotEmpty) {
+      notifications = notifications.where((notification) {
+        final titleMatch = notification.title.toLowerCase().contains(_searchTerm);
+        final messageMatch = notification.message.toLowerCase().contains(_searchTerm);
+        return titleMatch || messageMatch;
+      }).toList();
+    }
+
+    _filteredNotifications = notifications;
     notifyListeners();
   }
 

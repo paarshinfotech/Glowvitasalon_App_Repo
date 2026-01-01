@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:glow_vita_salon/model/product_detail.dart';
+
 import '../model/product.dart';
 import '../model/register_request.dart';
 import 'package:http/http.dart' as http;
@@ -61,4 +63,29 @@ class ApiService {
     }
   }
 
+  Future<ProductDetail> getProductDetails(String productId) async {
+    final response = await http.get(Uri.parse('$baseUrl/api/products/$productId'));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['success']) {
+        return ProductDetail.fromJson(data);
+      }
+    }
+    throw Exception('Failed to load product details');
+  }
+  
+    Future<List<Product>> getProductsByVendor(String vendorId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/products?vendorId=$vendorId'),
+    );
+
+    if (response.statusCode == 200) {
+      final jsonData = json.decode(response.body);
+      final List list = jsonData['products'];
+      return list.map((e) => Product.fromJson(e)).toList();
+    } else {
+      throw Exception('Failed to load related products');
+    }
+  }
 }

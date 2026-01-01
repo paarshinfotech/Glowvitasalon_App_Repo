@@ -39,9 +39,9 @@ class NotificationScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: Row(
         children: [
-          _buildFilterChip(context, controller, text: 'All (${controller.allCount})', isSelected: !controller.filteredAppointments.any((element) => !element.isRead), onSelected: () => controller.toggleFilter(false)),
+          _buildFilterChip(context, controller, text: 'All (${controller.allCount})', isSelected: !controller.showUnread, onSelected: () => controller.toggleFilter(false)),
           const SizedBox(width: 12),
-          _buildFilterChip(context, controller, text: 'Unread (${controller.unreadCount})', isSelected: controller.filteredAppointments.every((element) => !element.isRead), onSelected: () => controller.toggleFilter(true)),
+          _buildFilterChip(context, controller, text: 'Unread (${controller.unreadCount})', isSelected: controller.showUnread, onSelected: () => controller.toggleFilter(true)),
         ],
       ),
     );
@@ -53,7 +53,7 @@ class NotificationScreen extends StatelessWidget {
       selected: isSelected,
       onSelected: (selected) => onSelected(),
       backgroundColor: Colors.grey[200],
-      selectedColor: const Color(0xFF4A2C3F).withOpacity(0.1),
+      selectedColor: const Color.fromRGBO(74, 44, 63, 0.1),
       labelStyle: TextStyle(
         color: isSelected ? const Color(0xFF4A2C3F) : Colors.black87,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -111,7 +111,7 @@ class NotificationScreen extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: notification.isRead ? Colors.blue[50] : Colors.white,
       elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
+      shadowColor: const Color.fromRGBO(0, 0, 0, 0.1),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
