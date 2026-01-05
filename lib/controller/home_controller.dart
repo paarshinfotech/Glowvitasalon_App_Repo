@@ -6,8 +6,13 @@ import '../model/salon.dart';
 import '../services/api_service.dart';
 
 class HomeController extends ChangeNotifier {
-  String location = "Mumbai Naka, Nashik 422003";
+  String location = "Fetching location..."; // Default or loading state
   bool isLoading = true;
+
+  void updateLocation(String newLocation) {
+    location = newLocation;
+    notifyListeners();
+  }
 
   final List<Offer> offers = ([
     {'title': '50% OFF', 'description': 'Floral Nail Art Designs', 'imageUrl': 'https://i.imgur.com/example_nail_art.png'},

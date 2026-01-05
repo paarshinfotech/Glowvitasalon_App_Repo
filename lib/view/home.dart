@@ -7,8 +7,6 @@ import 'package:shimmer/shimmer.dart';
 import 'package:glow_vita_salon/model/product.dart';
 import 'package:glow_vita_salon/routes/app_routes.dart';
 import '../controller/home_controller.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:provider/provider.dart';
 
 class Home extends StatefulWidget {
@@ -19,7 +17,6 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  String _locationMessage = "Fetching location...";
   int _currentIndex = 0;
 
   @override
@@ -32,6 +29,25 @@ class _HomeState extends State<Home> {
             appBar: AppBar(
               title: _buildLocationHeader(controller),
               automaticallyImplyLeading: false,
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(60.0),
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: "Search for 'Massage'",
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                  ),
+                ),
+              ),
             ),
             body: SingleChildScrollView(
               child: Column(
@@ -95,7 +111,15 @@ class _HomeState extends State<Home> {
 
   Widget _buildLocationHeader(HomeController controller) {
     return InkWell(
-      onTap: _getCurrentLocation,
+      onTap: () async {
+        final result = await Navigator.pushNamed(context, AppRoutes.mappicker);
+        if (result != null && result is Map) {
+          final String? address = result['address'];
+          if (address != null && address.isNotEmpty) {
+            controller.updateLocation(address);
+          }
+        }
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12.0),
         child: Row(
@@ -104,7 +128,7 @@ class _HomeState extends State<Home> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                _locationMessage,
+                controller.location,
                 style: TextStyle(color: Colors.grey.shade800, fontSize: 16),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -113,56 +137,6 @@ class _HomeState extends State<Home> {
         ),
       ),
     );
-  }
-
-  Future<void> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      setState(() {
-        _locationMessage = "Location services are disabled.";
-      });
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        setState(() {
-          _locationMessage = "Location permissions are denied";
-        });
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      setState(() {
-        _locationMessage = "Location permissions are permanently denied, we cannot request permissions.";
-      });
-      return;
-    }
-
-    try {
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks[0];
-        setState(() {
-          _locationMessage = "${place.subLocality}, ${place.locality} ${place.postalCode}";
-        });
-      } else {
-        setState(() {
-          _locationMessage = "No address found for the location.";
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _locationMessage = "Failed to get location.";
-      });
-    }
   }
 
   Widget _buildCategorySection(HomeController controller) {

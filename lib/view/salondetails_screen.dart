@@ -59,14 +59,500 @@ class SalonDetailsScreen extends StatelessWidget {
   }
 
   List<Widget> _buildServicesContent(BuildContext context, SalonDetailsController controller) {
+    if (controller.serviceType == ServiceType.wedding) {
+      return [
+         SliverToBoxAdapter(child: _buildServicesSection(context, controller)),
+         _buildWeddingPackagesList(context, controller),
+      ];
+    }
+
     return [
       SliverToBoxAdapter(child: _buildServicesSection(context, controller)),
       _buildServicesList(context, controller, controller.filteredServices),
     ];
   }
 
+  Widget _buildWeddingPackagesList(BuildContext context, SalonDetailsController controller) {
+     return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final package = controller.allWeddingPackages[index];
+          final isSelected = controller.selectedPackage == package;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: GestureDetector(
+              onTap: () {
+                 controller.selectPackage(package);
+                 _showCustomizePackageModal(context, controller);
+              },
+              child: Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: isSelected ? const BorderSide(color: Color(0xFF4A2C3F), width: 2) : BorderSide.none,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (package.imageUrl != null)
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        child: Image.network(package.imageUrl!, height: 150, width: double.infinity, fit: BoxFit.cover),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(package.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                              if (isSelected)
+                                const Icon(Icons.check_circle, color: Color(0xFF4A2C3F)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(package.description, style: TextStyle(color: Colors.grey[600])),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                               Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                               const SizedBox(width: 4),
+                               Text(package.duration, style: TextStyle(color: Colors.grey[600])),
+                               const Spacer(),
+                               Text('₹${package.price.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF4A2C3F))),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => controller.selectPackage(package),
+                             style: ElevatedButton.styleFrom(
+                                backgroundColor: isSelected ? Colors.green : const Color(0xFF4A2C3F),
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                minimumSize: const Size(double.infinity, 40),
+                              ),
+                            child: Text(isSelected ? 'Selected' : 'Select Package'),
+                          )
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+        childCount: controller.allWeddingPackages.length,
+      ),
+    );
+  }
+
+  void _showCustomizePackageModal(BuildContext context, SalonDetailsController controller) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ChangeNotifierProvider.value(
+        value: controller,
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.5,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              Expanded(
+                child: Consumer<SalonDetailsController>(
+                  builder: (context, ctrl, child) {
+                    final package = ctrl.selectedPackage!;
+                    // Calculate price dynamically based on selected services
+                    // The ctrl.totalAmount is for the booking flow (includes person count).
+                    // Here we just want the sum of selected services for 1 person to show in the modal.
+                    final currentPrice = ctrl.selectedServices.fold<double>(0, (sum, service) => sum + service.price);
+                    final originalPrice = package.services.fold<double>(0, (sum, ps) => sum + ps.service.price); // Sum of ALL services if they were individual
+                    // Or maybe just show base package price vs current sum? 
+                    // Let's assume the package.price is the base price. 
+                    // Actually, let's stick to the sum of selected services as the "Final Price".
+                    
+                    return CustomScrollView(
+                      controller: scrollController,
+                      slivers: [
+                        // Header Image & Info
+                        SliverToBoxAdapter(
+                          child: Stack(
+                            children: [
+                              Container(
+                                height: 250,
+                                decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                    image: NetworkImage(package.imageUrl ?? 'https://via.placeholder.com/400'),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                height: 250,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 16,
+                                left: 16,
+                                right: 16,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            package.name,
+                                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                        Text(
+                                          '₹${currentPrice.toStringAsFixed(0)}/-',
+                                          style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        _buildHeaderChip(Icons.list, '${ctrl.selectedServices.length} Services'),
+                                        const SizedBox(width: 8),
+                                        _buildHeaderChip(Icons.access_time, package.duration),
+                                        const SizedBox(width: 8),
+                                        _buildHeaderChip(Icons.people, '2 Staff'), // Placeholder/Static for now as per design
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Positioned(
+                                top: 16,
+                                right: 16,
+                                child: CircleAvatar(
+                                  backgroundColor: Colors.black26,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.close, color: Colors.white),
+                                    onPressed: () => Navigator.pop(context),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              package.description,
+                              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            ),
+                          ),
+                        ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                        // Included Services
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(color: Colors.red[50], shape: BoxShape.circle),
+                                  child: const Icon(Icons.list, color: Colors.red, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text('Included Services', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                        
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                final packageService = package.services[index];
+                                final isSelected = ctrl.selectedServices.contains(packageService.service);
+                                
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: InkWell(
+                                    onTap: packageService.isLocked ? null : () => ctrl.togglePackageService(packageService),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFF0F5), // Light Pinkish background
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.red.withOpacity(0.1)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            decoration: const BoxDecoration(
+                                              color: Colors.red, // Design uses filled circle check
+                                              shape: BoxShape.circle,
+                                            ),
+                                            padding: const EdgeInsets.all(4),
+                                            child: const Icon(Icons.check, color: Colors.white, size: 12),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(packageService.service.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+                                          ),
+                                          if (!packageService.isLocked)
+                                            Checkbox(
+                                              value: isSelected, 
+                                              activeColor: Colors.red,
+                                              onChanged: (val) => ctrl.togglePackageService(packageService)
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                              childCount: package.services.length,
+                            ),
+                          ),
+                        ),
+                         const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                        // Expert Staff Members
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: Colors.purple[50], shape: BoxShape.circle),
+                                      child: const Icon(Icons.people, color: Colors.purple, size: 20),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text('Expert Staff Members', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  height: 80,
+                                  child: ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: 3, // Dummy count for UI
+                                    itemBuilder: (context, index) {
+                                       // Dummy avatars
+                                       return Container(
+                                         margin: const EdgeInsets.only(right: 12),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.deepPurple.withOpacity(0.05),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: Colors.deepPurple.withOpacity(0.1)),
+                                          ),
+                                         child: Row(
+                                           children: [
+                                             const CircleAvatar(
+                                                backgroundColor: Colors.deepPurpleAccent,
+                                                child: Icon(Icons.person, color: Colors.white),
+                                             ),
+                                             const SizedBox(width: 12),
+                                             Text(
+                                               'Staff ${index+1}', 
+                                               style: const TextStyle(fontWeight: FontWeight.bold),
+                                             ),
+                                           ],
+                                         ),
+                                       );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                        // Pricing Card
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF0F5),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.red.withOpacity(0.2)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                   const Row(
+                                     children: [
+                                        Text('💰', style: TextStyle(fontSize: 20)),
+                                        SizedBox(width: 8),
+                                        Text('Package Pricing', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                     ],
+                                   ),
+                                   const SizedBox(height: 24),
+                                   Row(
+                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                     children: [
+                                       Text('Original Price:', style: TextStyle(color: Colors.grey[700], fontSize: 16)),
+                                       Text(
+                                          '₹${(currentPrice * 1.2).toStringAsFixed(0)}', // Dummy markdown for visuals
+                                          style: TextStyle(
+                                            color: Colors.grey[500], 
+                                            fontSize: 16, 
+                                            decoration: TextDecoration.lineThrough
+                                          ),
+                                       ),
+                                     ],
+                                   ),
+                                   const SizedBox(height: 12),
+                                   Row(
+                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                     children: [
+                                       Text('You Save:', style: TextStyle(color: Colors.grey[700], fontSize: 16)),
+                                       Container(
+                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                         decoration: BoxDecoration(color: Colors.green[100], borderRadius: BorderRadius.circular(4)),
+                                         child: const Text('20% OFF', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                                       ),
+                                     ],
+                                   ),
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 16),
+                                      child: Divider(color: Colors.redAccent),
+                                    ),
+                                    Row(
+                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                     children: [
+                                       const Text('Final Price:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                       Text('₹${currentPrice.toStringAsFixed(0)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                                     ],
+                                   ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 30)),
+                      ],
+                    );
+                  }
+                ),
+              ),
+              // Bottom Buttons
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                           padding: const EdgeInsets.symmetric(vertical: 16),
+                           side: BorderSide(color: Colors.grey.shade300),
+                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: const Text('Close', style: TextStyle(color: Colors.black)),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                     Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                         style: ElevatedButton.styleFrom(
+                           backgroundColor: const Color(0xFFE91E63), // Pinkish Red
+                           padding: const EdgeInsets.symmetric(vertical: 16),
+                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                             Icon(Icons.favorite_border, color: Colors.white, size: 20),
+                             SizedBox(width: 8),
+                             Text('Select Package', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.black),
+          const SizedBox(width: 4),
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+
   Widget _buildBottomAppBar(BuildContext context, SalonDetailsController controller) {
-    final price = controller.selectedServices.fold<double>(0, (sum, service) => sum + service.price);
+    
+    // Only show total price if we have selected something or if we are in package mode
+    
+    double price = 0.0;
+    if (controller.serviceType == ServiceType.wedding && controller.selectedPackage == null) {
+       // Show nothing or 'Select a package'
+       return const SizedBox.shrink();
+    } else {
+       price = controller.totalAmount; 
+       // Note: totalAmount in controller is now dynamic based on person count
+       // If just services selected (person count 1), it matches.
+       // But wait, totalAmount logic was: subtotal + fees + gst
+       // The new logic for wedding: subtotal * people.
+       // Let's use controller.totalAmount directly.
+       price = controller.totalAmount;
+    }
+    
+    // Override price display for Package selection step (before Person count)
+    // Actually, let's keep it simple. If package selected, show price for 1 person until updated.
+    
     Column priceWidget(String title) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -93,12 +579,35 @@ class SalonDetailsScreen extends StatelessWidget {
             ? _buildDateTimeNavBar(context, controller, priceWidget('Total'))
             : controller.currentState == SalonDetailsState.staff
                 ? _buildStaffNavBar(context, controller, priceWidget('Total'))
-                : _buildServiceNavBar(context, controller, priceWidget('Total')),
+                : _buildServiceNavBar(context, controller, priceWidget('Total Price')),
       ),
     );
   }
 
   List<Widget> _buildServiceNavBar(BuildContext context, SalonDetailsController controller, Widget priceWidget) {
+    // If Wedding Package Mode
+    if (controller.serviceType == ServiceType.wedding) {
+         if (controller.selectedPackage != null) {
+            return [
+              priceWidget,
+              ElevatedButton(
+                onPressed: () {
+                   controller.proceedToDateSelectionFromPackage();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF4A2C3F),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+                ),
+                child: const Text('Next', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ];
+         } else {
+           return [const SizedBox.shrink()]; // Show nothing if no package selected (list has its own buttons)
+         }
+    }
+
     return [
       priceWidget,
       ElevatedButton(
@@ -214,9 +723,20 @@ class SalonDetailsScreen extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      _buildDetailRow(Icons.cut, 'Service', controller.selectedServices.first.name, '${controller.selectedServices.first.duration} • ₹${controller.selectedServices.first.price}/-'),
+                      if (controller.selectedPackage != null)
+                         _buildDetailRow(Icons.card_giftcard, 'Package', controller.selectedPackage!.name, null),
+                      if(controller.selectedPackage != null)
+                        const Divider(height: 24),
+                        
+                      if (controller.selectedServices.isNotEmpty)
+                          _buildDetailRow(Icons.cut, 'Services', '${controller.selectedServices.length} Selected', controller.selectedServices.map((s) => s.name).take(3).join(', ')),
+
                       const Divider(height: 24),
-                      _buildDetailRow(Icons.person_outline, 'Staff', controller.selectedStaff.values.first.name, null),
+                      if (controller.selectedStaff.isNotEmpty)
+                         _buildDetailRow(Icons.person_outline, 'Staff', controller.selectedStaff.values.first.name, null)
+                      else if(controller.serviceType == ServiceType.wedding)
+                         _buildDetailRow(Icons.people_outline, 'Persons', '${controller.numberOfPeople} People', null),
+                         
                       const Divider(height: 24),
                       _buildDetailRow(Icons.calendar_today_outlined, 'Date and Time', DateFormat('EEEE, d MMM yyyy').format(controller.selectedDate), controller.selectedTime),
                     ],
@@ -251,10 +771,16 @@ class SalonDetailsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 _buildPriceRow('Subtotal :', '₹ ${controller.subtotal.toStringAsFixed(2)}/-'),
-                const SizedBox(height: 8),
-                _buildPriceRow('Platform Fee :', '₹ ${20.0.toStringAsFixed(2)}/-'),
-                const SizedBox(height: 8),
-                _buildPriceRow('GST :', '₹ ${2.50.toStringAsFixed(2)}/-'),
+                if (controller.serviceType == ServiceType.wedding)
+                   _buildPriceRow('Person(s) :', 'x ${controller.numberOfPeople}'),
+                   
+                 if (controller.serviceType != ServiceType.wedding) ...[
+                  const SizedBox(height: 8),
+                  _buildPriceRow('Platform Fee :', '₹ ${20.0.toStringAsFixed(2)}/-'),
+                  const SizedBox(height: 8),
+                  _buildPriceRow('GST :', '₹ ${2.50.toStringAsFixed(2)}/-'),
+                 ],
+                
                 const Divider(height: 24, thickness: 1.5),
                 _buildPriceRow('Total Amount :', '₹ ${controller.totalAmount.toStringAsFixed(2)}/-', isTotal: true),
                 const SizedBox(height: 24),
@@ -763,97 +1289,104 @@ class SalonDetailsScreen extends StatelessWidget {
   }
 
   Widget _buildBookingPreferenceSection(BuildContext context, SalonDetailsController controller) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF5FF),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Text('Booking Preference', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Container(
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(25),
-            ),
+          // Left Side: Icon and Text
+          Expanded(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => controller.setBookingPreference(BookingPreference.visitSalon),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: controller.bookingPreference == BookingPreference.visitSalon
-                            ? const Color(0xFF4A2C3F)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.store,
-                            size: 16,
-                            color: controller.bookingPreference == BookingPreference.visitSalon
-                                ? Colors.white
-                                : Colors.grey.shade700,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'At Salon',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: controller.bookingPreference == BookingPreference.visitSalon
-                                  ? Colors.white
-                                  : Colors.grey.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  child: const Icon(Icons.calendar_month, color: Colors.redAccent, size: 24),
                 ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => controller.setBookingPreference(BookingPreference.homeService),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: controller.bookingPreference == BookingPreference.homeService
-                            ? const Color(0xFF4A2C3F)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(25),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'How would you like to book?',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.home,
-                            size: 16,
-                            color: controller.bookingPreference == BookingPreference.homeService
-                                ? Colors.white
-                                : Colors.grey.shade700,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Home Service',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: controller.bookingPreference == BookingPreference.homeService
-                                  ? Colors.white
-                                  : Colors.grey.shade700,
-                            ),
-                          ),
-                        ],
+                      SizedBox(height: 4),
+                      Text(
+                        'Select your preferred services location type',
+                        style: TextStyle(fontSize: 11, color: Colors.black54),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 12),
+          // Right Side: Buttons
+          Column(
+            children: [
+              _buildBookingTypeButton(
+                title: 'Visit Salon',
+                icon: Icons.content_cut,
+                isSelected: controller.bookingPreference == BookingPreference.visitSalon,
+                onTap: () => controller.setBookingPreference(BookingPreference.visitSalon),
+              ),
+              const SizedBox(height: 8),
+              _buildBookingTypeButton(
+                title: 'Home Service',
+                icon: Icons.home,
+                isSelected: controller.bookingPreference == BookingPreference.homeService,
+                onTap: () => controller.setBookingPreference(BookingPreference.homeService),
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBookingTypeButton({
+    required String title,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 130, // Fixed width for consistency
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF4A2C3F) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade400),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: isSelected ? Colors.white : Colors.black87),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : Colors.black87,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

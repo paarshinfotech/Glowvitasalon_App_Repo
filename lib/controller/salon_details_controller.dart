@@ -93,28 +93,43 @@ class SalonDetailsController extends ChangeNotifier {
       // Initialize wedding packages if empty
       _weddingPackages.addAll([
         WeddingPackage(
-          name: 'Basic Bridal Package',
-          description: 'Essential bridal services for your special day',
+          name: 'Silver Glow Bride',
+          description: 'Perfect for intimate ceremonies. Includes essential bridal makeup and hair styling.',
           duration: '4 hours',
           price: 15000,
           imageUrl: 'https://i.pravatar.cc/150?img=10',
-          services: _services.where((s) => s.category == 'Makeup').toList(),
+          services: [
+             PackageService(service: _services.firstWhere((s) => s.name == 'Bridal Makeup'), isLocked: true),
+             PackageService(service: _services.firstWhere((s) => s.name == 'Straight Cut'), isLocked: false), // Optional
+             PackageService(service: _services.firstWhere((s) => s.name == 'Manicure'), isLocked: false), // Optional
+          ],
         ),
         WeddingPackage(
-          name: 'Premium Bridal Package',
-          description: 'Complete bridal package with premium services',
+          name: 'Gold Radiance Bride',
+          description: 'Our most popular package. Comprehensive care for your big day.',
           duration: '6 hours',
           price: 25000,
           imageUrl: 'https://i.pravatar.cc/150?img=11',
-          services: _services.where((s) => s.category == 'Makeup' || s.category == 'Hair Treatment').toList(),
+          services: [
+            PackageService(service: _services.firstWhere((s) => s.name == 'Bridal Makeup'), isLocked: true),
+            PackageService(service: _services.firstWhere((s) => s.name == 'Advanced Haircut (Any Style)'), isLocked: true),
+            PackageService(service: _services.firstWhere((s) => s.name == 'Hair Spa'), isLocked: false),
+            PackageService(service: _services.firstWhere((s) => s.name == 'Pedicure'), isLocked: false),
+          ],
         ),
         WeddingPackage(
-          name: 'Royal Bridal Package',
-          description: 'Luxury bridal experience with all premium services',
+          name: 'Platinum Luxury Bride',
+          description: 'The ultimate indulgence. All-inclusive royal treatment.',
           duration: '8 hours',
           price: 35000,
           imageUrl: 'https://i.pravatar.cc/150?img=12',
-          services: _services,
+          services: [
+             PackageService(service: _services.firstWhere((s) => s.name == 'Bridal Makeup'), isLocked: true),
+             PackageService(service: _services.firstWhere((s) => s.name == 'Advanced Haircut (Any Style)'), isLocked: true),
+             PackageService(service: _services.firstWhere((s) => s.name == 'Hair Spa'), isLocked: false),
+             PackageService(service: _services.firstWhere((s) => s.name == 'Manicure'), isLocked: false),
+             PackageService(service: _services.firstWhere((s) => s.name == 'Pedicure'), isLocked: false),
+          ],
         ),
       ]);
     }
@@ -139,6 +154,9 @@ class SalonDetailsController extends ChangeNotifier {
   final List<String> _eveningSlots = ['04:00 PM', '04:30 PM', '05:00 PM'];
   List<String> get eveningSlots => _eveningSlots;
 
+  WeddingPackage? _selectedPackage;
+  WeddingPackage? get selectedPackage => _selectedPackage;
+
   void onPageChanged(int index) {
     _currentPage = index;
     notifyListeners();
@@ -152,6 +170,7 @@ class SalonDetailsController extends ChangeNotifier {
   void setServiceType(ServiceType type) {
     _serviceType = type;
     _selectedServices.clear();
+    _selectedPackage = null;
     if (type == ServiceType.wedding) {
       _selectedServiceCategory = 'Makeup';
     } else {
@@ -159,6 +178,32 @@ class SalonDetailsController extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void selectPackage(WeddingPackage package) {
+    if (_selectedPackage == package) {
+      // _selectedPackage = null;
+      // _selectedServices.clear();
+    } else {
+      _selectedPackage = package;
+      _selectedServices.clear();
+      // Add all services from the package initially
+      _selectedServices.addAll(package.services.map((ps) => ps.service));
+    }
+    notifyListeners();
+  }
+
+  void togglePackageService(PackageService packageService) {
+    if (packageService.isLocked) return;
+
+    final service = packageService.service;
+    if (_selectedServices.contains(service)) {
+      _selectedServices.remove(service);
+    } else {
+      _selectedServices.add(service);
+    }
+    notifyListeners();
+  }
+
 
   void setBookingPreference(BookingPreference preference) {
     _bookingPreference = preference;
@@ -178,6 +223,7 @@ class SalonDetailsController extends ChangeNotifier {
   }
 
   void toggleService(Service service) {
+    // Only for individual
     if (_selectedServices.contains(service)) {
       _selectedServices.remove(service);
     } else {
@@ -191,6 +237,13 @@ class SalonDetailsController extends ChangeNotifier {
       _currentState = SalonDetailsState.staff;
       notifyListeners();
     }
+  }
+
+  void proceedToDateSelectionFromPackage() {
+     if (_selectedPackage != null && _selectedServices.isNotEmpty) {
+      _currentState = SalonDetailsState.dateTime;
+      notifyListeners();
+     }
   }
 
   void backToServiceSelection() {
@@ -233,13 +286,22 @@ class SalonDetailsController extends ChangeNotifier {
   }
 
   double get totalAmount {
+    // If wedding package, total = sum of selected services * number of people
+    // The base price of package is just a guidance, we calculate real time based on user selection
     final subtotal = _selectedServices.fold<double>(0, (sum, service) => sum + service.price);
+    
+    if (_serviceType == ServiceType.wedding) {
+       return (subtotal * _numberOfPeople); 
+    }
+
     const platformFee = 20.0;
     const gst = 2.50;
     return subtotal + platformFee + gst;
   }
-
-  double get subtotal => _selectedServices.fold<double>(0, (sum, service) => sum + service.price);
+  
+  double get subtotal {
+      return _selectedServices.fold<double>(0, (sum, service) => sum + service.price);
+  }
 
   @override
   void dispose() {
@@ -263,6 +325,13 @@ class SalonDetailsController extends ChangeNotifier {
   }
 
   void handleBackButton() {
+    if (_selectedPackage != null && _currentState == SalonDetailsState.dateTime) {
+         // Stay in package customization (services state) but keep the package selected
+         _currentState = SalonDetailsState.services;
+         notifyListeners();
+         return;
+    }
+
     if (_currentState == SalonDetailsState.dateTime) {
       _currentState = SalonDetailsState.staff;
     } else if (_currentState == SalonDetailsState.staff) {
@@ -281,6 +350,8 @@ class SalonDetailsController extends ChangeNotifier {
     _serviceType = ServiceType.individual;
     _selectedServiceCategory = 'All Categories';
     _bookingPreference = BookingPreference.visitSalon;
+    _selectedPackage = null;
+    _numberOfPeople = 1;
     notifyListeners();
   }
 }
