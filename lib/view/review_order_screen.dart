@@ -539,12 +539,21 @@ class _ReviewOrderScreenState extends State<ReviewOrderScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
-              controller.product.images.first,
+              controller.product.fullImageUrl,
               width: 90,
               height: 110,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) =>
-                  const Icon(Icons.image_not_supported, size: 40),
+              errorBuilder: (_, __, ___) => Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.image_outlined,
+                  size: 40,
+                  color: Colors.grey,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 12),

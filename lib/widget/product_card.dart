@@ -45,7 +45,7 @@ class ProductCard extends StatelessWidget {
               ),
 
               child: Image.network(
-                product.image,
+                product.fullImageUrl,
                 height: 120,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -69,24 +69,14 @@ class ProductCard extends StatelessWidget {
                   return Container(
                     height: 120,
                     width: double.infinity,
-                    color: Colors.grey[300],
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.broken_image_outlined,
-                          size: 40,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Image not available",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.image_outlined,
+                      size: 40,
+                      color: Colors.grey,
                     ),
                   );
                 },

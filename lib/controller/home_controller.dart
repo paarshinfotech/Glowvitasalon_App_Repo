@@ -1,14 +1,11 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:glow_vita_salon/model/category.dart';
 import '../model/offers.dart';
 import '../model/product.dart';
 import '../model/salon.dart';
-import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 
-class HomeController {
-  VoidCallback? onStateChanged;
-
+class HomeController extends ChangeNotifier {
   String location = "Mumbai Naka, Nashik 422003";
   bool isLoading = true;
 
@@ -27,69 +24,48 @@ class HomeController {
     Category(id: '6', name: 'Bridal', iconUrl: 'https://i.imgur.com/example_bridal.png'),
   ];
 
-  final List<Salon> popularSalons = [
-    Salon(
-      name: 'Nidhi Hair & Nail Salon',
-      salonType: 'Hair Salon',
-      address: 'KBT Circle, Nashik',
-      rating: 4.9,
-      clientCount: 299,
-      imageUrl: 'https://i.imgur.com/salon1.png',
-      description: 'A full-service salon offering the latest trends in hair and beauty.',
-      hasNewOffer: true,
-    ),
-    Salon(
-      name: 'Vishakha Salon',
-      salonType: 'Hair Salon',
-      address: 'Dream Castle, Nashik',
-      rating: 3.4,
-      clientCount: 209,
-      imageUrl: 'https://i.imgur.com/salon2.png',
-      description: 'Specializing in vibrant color and modern styling.',
-    ),
-  ];
-
-  final List<Salon> recommendedSalons = [
-     Salon(
-        name: 'Facebook Salon',
-        salonType: 'Hair Salon',
-        address: 'Humbard Road, Nashik',
-        rating: 3.9,
-        clientCount: 150,
-        imageUrl: 'https://i.imgur.com/salon3.png',
-        description: 'A cozy and friendly salon for all your beauty needs.',
-    ),
-    Salon(
-        name: 'LuxeClear Salon',
-        salonType: 'Hair Salon',
-        address: 'Shivaji Nagar, Jail Rd, Nashik',
-        rating: 3.4,
-        clientCount: 109,
-        imageUrl: 'https://i.imgur.com/salon4.png',
-        description: 'High-end services for a luxurious experience.',
-    ),
-  ];
-
+  List<Salon> popularSalons = [];
+  List<Salon> recommendedSalons = [];
   List<Product> products = [];
 
-  void init() {
-    _loadProducts();
+  HomeController() {
+    _fetchData();
   }
 
-  void _loadProducts() async {
-    isLoading = true;
-    onStateChanged?.call();
+  void _fetchData() async {
+    try {
+      isLoading = true;
+      notifyListeners();
 
-    // Simulate network delay
-    await Future.delayed(const Duration(seconds: 1));
+      print('Fetching data from API...');
+      final vendors = await ApiService.getVendors();
+      final productsData = await ApiService.getProducts();
 
+      final salons = vendors.map((vendor) => Salon.fromVendor(vendor)).toList();
 
+      // Ensure we have enough salons to split
+      if (salons.length >= 6) {
+        popularSalons = salons.take(3).toList();
+        recommendedSalons = salons.skip(3).take(3).toList();
+      } else if (salons.length > 3) {
+        popularSalons = salons.take(3).toList();
+        recommendedSalons = salons.skip(3).toList();
+      } else {
+        popularSalons = salons;
+        recommendedSalons = [];
+      }
 
-    isLoading = false;
-    onStateChanged?.call();
+      products = productsData.take(4).toList();
+
+      print('Data fetched successfully');
+    } catch (e) {
+      print('Error fetching data: $e');
+      popularSalons = [];
+      recommendedSalons = [];
+      products = [];
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
-
-
-
-
 }

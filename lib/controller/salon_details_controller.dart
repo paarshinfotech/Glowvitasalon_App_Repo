@@ -4,12 +4,14 @@ import 'package:glow_vita_salon/model/product.dart';
 import 'package:glow_vita_salon/model/salon.dart';
 import 'package:glow_vita_salon/model/service.dart';
 import 'package:glow_vita_salon/model/specialist.dart';
+import 'package:glow_vita_salon/model/wedding_package.dart';
 import 'package:glow_vita_salon/services/api_service.dart';
 import 'package:glow_vita_salon/controller/feedback_controller.dart';
 
 enum PaymentMethod { payAtSalon, payOnline }
 enum SalonDetailsState { services, staff, dateTime }
-
+enum ServiceType { individual, wedding }
+enum BookingPreference { visitSalon, homeService }
 
 class SalonDetailsController extends ChangeNotifier {
   SalonDetailsController(this.salon) {
@@ -32,8 +34,17 @@ class SalonDetailsController extends ChangeNotifier {
   String _selectedServiceCategory = 'Hair Cuts';
   String get selectedServiceCategory => _selectedServiceCategory;
 
+  ServiceType _serviceType = ServiceType.individual;
+  ServiceType get serviceType => _serviceType;
+
+  BookingPreference _bookingPreference = BookingPreference.visitSalon;
+  BookingPreference get bookingPreference => _bookingPreference;
+
   final List<Service> _selectedServices = [];
   List<Service> get selectedServices => _selectedServices;
+
+  int _numberOfPeople = 1;
+  int get numberOfPeople => _numberOfPeople;
 
   late Future<List<Product>> _productsFuture;
   Future<List<Product>> get productsFuture => _productsFuture;
@@ -74,6 +85,42 @@ class SalonDetailsController extends ChangeNotifier {
   ];
   List<Service> get services => _services;
 
+  final List<WeddingPackage> _weddingPackages = [];
+  List<WeddingPackage> get weddingPackages => _weddingPackages;
+
+  List<WeddingPackage> get allWeddingPackages {
+    if (_weddingPackages.isEmpty) {
+      // Initialize wedding packages if empty
+      _weddingPackages.addAll([
+        WeddingPackage(
+          name: 'Basic Bridal Package',
+          description: 'Essential bridal services for your special day',
+          duration: '4 hours',
+          price: 15000,
+          imageUrl: 'https://i.pravatar.cc/150?img=10',
+          services: _services.where((s) => s.category == 'Makeup').toList(),
+        ),
+        WeddingPackage(
+          name: 'Premium Bridal Package',
+          description: 'Complete bridal package with premium services',
+          duration: '6 hours',
+          price: 25000,
+          imageUrl: 'https://i.pravatar.cc/150?img=11',
+          services: _services.where((s) => s.category == 'Makeup' || s.category == 'Hair Treatment').toList(),
+        ),
+        WeddingPackage(
+          name: 'Royal Bridal Package',
+          description: 'Luxury bridal experience with all premium services',
+          duration: '8 hours',
+          price: 35000,
+          imageUrl: 'https://i.pravatar.cc/150?img=12',
+          services: _services,
+        ),
+      ]);
+    }
+    return _weddingPackages;
+  }
+
   final List<Specialist> _specialists = [
     Specialist(name: 'Rohit Roy', imageUrl: 'https://i.pravatar.cc/150?img=12'),
     Specialist(name: 'Dnyanada Deny', imageUrl: 'https://i.pravatar.cc/150?img=33'),
@@ -99,6 +146,34 @@ class SalonDetailsController extends ChangeNotifier {
 
   void selectServiceCategory(String category) {
     _selectedServiceCategory = category;
+    notifyListeners();
+  }
+
+  void setServiceType(ServiceType type) {
+    _serviceType = type;
+    _selectedServices.clear();
+    if (type == ServiceType.wedding) {
+      _selectedServiceCategory = 'Makeup';
+    } else {
+      _selectedServiceCategory = 'All Categories';
+    }
+    notifyListeners();
+  }
+
+  void setBookingPreference(BookingPreference preference) {
+    _bookingPreference = preference;
+    notifyListeners();
+  }
+
+  void setNumberOfPeople(int numberOfPeople) {
+    _numberOfPeople = numberOfPeople;
+    notifyListeners();
+  }
+
+  void updateWeddingPackage(List<Service> services, int numberOfPeople) {
+    _selectedServices.clear();
+    _selectedServices.addAll(services);
+    _numberOfPeople = numberOfPeople;
     notifyListeners();
   }
 
@@ -151,21 +226,20 @@ class SalonDetailsController extends ChangeNotifier {
     _selectedTime = time;
     notifyListeners();
   }
-  
+
   void selectPaymentMethod(PaymentMethod? method) {
     _paymentMethod = method;
     notifyListeners();
   }
-  
+
   double get totalAmount {
     final subtotal = _selectedServices.fold<double>(0, (sum, service) => sum + service.price);
     const platformFee = 20.0;
     const gst = 2.50;
     return subtotal + platformFee + gst;
   }
-  
-  double get subtotal => _selectedServices.fold<double>(0, (sum, service) => sum + service.price);
 
+  double get subtotal => _selectedServices.fold<double>(0, (sum, service) => sum + service.price);
 
   @override
   void dispose() {
@@ -174,10 +248,14 @@ class SalonDetailsController extends ChangeNotifier {
   }
 
   List<Service> get filteredServices {
-    if (_selectedServiceCategory == 'All Categories') {
-      return _services;
+    if (_serviceType == ServiceType.wedding) {
+      return _services.where((s) => s.category == 'Makeup').toList();
+    } else {
+      if (_selectedServiceCategory == 'All Categories') {
+        return _services.where((s) => s.category != 'Makeup').toList();
+      }
+      return _services.where((s) => s.category == _selectedServiceCategory).toList();
     }
-    return _services.where((s) => s.category == _selectedServiceCategory).toList();
   }
 
   bool isStaffSelected(Specialist specialist) {
@@ -200,6 +278,9 @@ class SalonDetailsController extends ChangeNotifier {
     _selectedDate = DateTime.now();
     _selectedTime = null;
     _paymentMethod = null;
+    _serviceType = ServiceType.individual;
+    _selectedServiceCategory = 'All Categories';
+    _bookingPreference = BookingPreference.visitSalon;
     notifyListeners();
   }
 }

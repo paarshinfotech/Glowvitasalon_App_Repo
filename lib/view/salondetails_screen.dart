@@ -9,7 +9,7 @@ import 'package:glow_vita_salon/widget/service_card.dart';
 import 'package:glow_vita_salon/widget/specialist_avatar.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-
+  
 import '../model/product.dart';
 import '../model/feedback.dart';
 
@@ -650,6 +650,9 @@ class SalonDetailsScreen extends StatelessWidget {
   }
 
   Widget _buildServicesSection(BuildContext context, SalonDetailsController controller) {
+    bool isIndividualSelected = controller.serviceType == ServiceType.individual;
+    bool isWeddingSelected = controller.serviceType == ServiceType.wedding;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24.0),
       child: Column(
@@ -667,30 +670,189 @@ class SalonDetailsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            height: 40,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              itemCount: controller.serviceCategories.length,
-              itemBuilder: (context, index) {
-                final category = controller.serviceCategories[index];
-                final isSelected = category == controller.selectedServiceCategory;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: GestureDetector(
-                    onTap: () => controller.selectServiceCategory(category),
-                    child: Chip(
-                      label: Text(category, style: TextStyle(color: isSelected ? Colors.white : Colors.black87)),
-                      backgroundColor: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade200,
-                      side: BorderSide(color: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade400),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => controller.setServiceType(ServiceType.individual),
+                    icon: Icon(Icons.person, color: isIndividualSelected ? Colors.white : Colors.black, size: 20),
+                    label: Text('Individual Services', style: TextStyle(color: isIndividualSelected ? Colors.white : Colors.black)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isIndividualSelected ? const Color(0xFF4A2C3F) : Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      side: isIndividualSelected ? null : BorderSide(color: Colors.grey.shade400),
                     ),
                   ),
-                );
-              },
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => controller.setServiceType(ServiceType.wedding),
+                    icon: Icon(Icons.favorite, color: isWeddingSelected ? Colors.white : Colors.black, size: 20),
+                    label: Text('Wedding Packages', style: TextStyle(color: isWeddingSelected ? Colors.white : Colors.black)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isWeddingSelected ? const Color(0xFF4A2C3F) : Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      side: isWeddingSelected ? null : BorderSide(color: Colors.grey.shade400),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          )
+          ),
+          if (isIndividualSelected) ...[
+            const SizedBox(height: 16),
+            _buildBookingPreferenceSection(context, controller),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 40,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                itemCount: controller.serviceCategories.length,
+                itemBuilder: (context, index) {
+                  final category = controller.serviceCategories[index];
+                  final isSelected = category == controller.selectedServiceCategory;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: GestureDetector(
+                      onTap: () => controller.selectServiceCategory(category),
+                      child: Chip(
+                        label: Text(category, style: TextStyle(color: isSelected ? Colors.white : Colors.black87)),
+                        backgroundColor: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade200,
+                        side: BorderSide(color: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade400),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
+          ] else if (isWeddingSelected) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 40,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                itemCount: controller.serviceCategories.length,
+                itemBuilder: (context, index) {
+                  final category = controller.serviceCategories[index];
+                  final isSelected = category == controller.selectedServiceCategory;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: GestureDetector(
+                      onTap: () => controller.selectServiceCategory(category),
+                      child: Chip(
+                        label: Text(category, style: TextStyle(color: isSelected ? Colors.white : Colors.black87)),
+                        backgroundColor: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade200,
+                        side: BorderSide(color: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade400),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
+          ]
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingPreferenceSection(BuildContext context, SalonDetailsController controller) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Booking Preference', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Container(
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => controller.setBookingPreference(BookingPreference.visitSalon),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: controller.bookingPreference == BookingPreference.visitSalon
+                            ? const Color(0xFF4A2C3F)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.store,
+                            size: 16,
+                            color: controller.bookingPreference == BookingPreference.visitSalon
+                                ? Colors.white
+                                : Colors.grey.shade700,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'At Salon',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: controller.bookingPreference == BookingPreference.visitSalon
+                                  ? Colors.white
+                                  : Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => controller.setBookingPreference(BookingPreference.homeService),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: controller.bookingPreference == BookingPreference.homeService
+                            ? const Color(0xFF4A2C3F)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.home,
+                            size: 16,
+                            color: controller.bookingPreference == BookingPreference.homeService
+                                ? Colors.white
+                                : Colors.grey.shade700,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Home Service',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: controller.bookingPreference == BookingPreference.homeService
+                                  ? Colors.white
+                                  : Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -713,6 +875,8 @@ class SalonDetailsScreen extends StatelessWidget {
       ),
     );
   }
+
+
 
   SliverToBoxAdapter _buildSpecialistsSection(BuildContext context, SalonDetailsController controller) {
     return SliverToBoxAdapter(

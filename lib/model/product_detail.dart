@@ -68,4 +68,22 @@ class ProductDetail {
       brand: productJson['brand'],
     );
   }
+
+  // This getter returns the first image URL with proper formatting
+  String get fullImageUrl {
+    if (images.isEmpty) {
+      return ''; // Return an empty string if no images are available.
+    }
+    
+    String firstImage = images.first;
+    const String baseUrl = "https://v2winonline.com";
+    
+    if (firstImage.startsWith('http')) {
+      return firstImage; // Already a full URL.
+    }
+    
+    // Remove any leading slashes from the image path to prevent double slashes.
+    final imagePath = firstImage.startsWith('/') ? firstImage.substring(1) : firstImage;
+    return "$baseUrl/$imagePath";
+  }
 }

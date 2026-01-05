@@ -3,17 +3,13 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:glow_vita_salon/model/category.dart';
 import 'package:glow_vita_salon/model/offers.dart';
 import 'package:glow_vita_salon/model/salon.dart';
-import 'package:glow_vita_salon/services/api_service.dart';
-import 'package:glow_vita_salon/view/appointments_screen.dart';
-import 'package:glow_vita_salon/view/map_picker_screen.dart';
-import 'package:glow_vita_salon/view/salon_list_screen.dart';
-import 'package:glow_vita_salon/widget/product_card.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:glow_vita_salon/model/product.dart';
 import 'package:glow_vita_salon/routes/app_routes.dart';
 import '../controller/home_controller.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:provider/provider.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -23,264 +19,85 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  final HomeController _controller = HomeController();
-  static String _locationMessage = "Fetching location...";
-  static bool _isManualLocationSet = false;
+  String _locationMessage = "Fetching location...";
   int _currentIndex = 0;
-  late Future<List<Product>> _productsFuture;
-
-  final List<Widget> _pages = [
-    const HomeScreenContent(),
-    const SalonListScreen(),
-    const AppointmentsScreen(),
-    Container(), // Placeholder for doctor
-    Container(), // Placeholder for products
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.onStateChanged = () {
-      if (mounted) {
-        setState(() {});
-      }
-    };
-    _controller.init();
-    _productsFuture = ApiService.getProducts();
-    if (!_isManualLocationSet) {
-      _getCurrentLocation();
-    }
-  }
-
-  Future<void> _getCurrentLocation() async {
-    if (_isManualLocationSet) return;
-
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      if (mounted) {
-        setState(() => _locationMessage = "Location services are disabled.");
-      }
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        if (mounted) {
-          setState(() => _locationMessage = "Location permissions are denied");
-        }
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      if (mounted) {
-        setState(() => _locationMessage = "Location permissions are permanently denied.");
-      }
-      return;
-    }
-
-    try {
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks[0];
-        if (mounted && !_isManualLocationSet) {
-          setState(() {
-            _locationMessage = "${place.subLocality}, ${place.locality} ${place.postalCode}";
-          });
-        }
-      } else {
-        if (mounted && !_isManualLocationSet) {
-          setState(() => _locationMessage = "No address found for the location.");
-        }
-      }
-    } catch (e) {
-      if (mounted && !_isManualLocationSet) {
-        setState(() => _locationMessage = "Failed to get location.");
-      }
-    }
-  }
-
-  void _openMapPicker() async {
-    final selectedLocation = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const MapPickerScreen()),
-    );
-
-    if (selectedLocation != null && selectedLocation is Map) {
-      setState(() {
-        _locationMessage = selectedLocation['address'];
-        _isManualLocationSet = true;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _buildAppBar(),
-      body: _pages[_currentIndex],
-      bottomNavigationBar: _buildBottomNav(),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    if (_currentIndex == 1) {
-      return AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: const Color(0xFF4A2C3F),
-        title: const Text('Salons', style: TextStyle(color: Colors.white)),
-      );
-    }
-    if (_currentIndex == 2) {
-      return AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: const Color(0xFF4A2C3F),
-        title: const Text('My Appointments', style: TextStyle(color: Colors.white)),
-      );
-    }
-    return AppBar(
-      elevation: 0,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      automaticallyImplyLeading: false,
-      title: Row(
-        children: const [
-          CircleAvatar(
-            radius: 22,
-            backgroundImage: NetworkImage("https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1160&q=80"),
-          ),
-          SizedBox(width: 12),
-          Text(
-            'Hii, Olivia Joy',
-            style: TextStyle(
-              color: Colors.black87,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
+    return ChangeNotifierProvider(
+      create: (_) => HomeController(),
+      child: Consumer<HomeController>(
+        builder: (context, controller, child) {
+          return Scaffold(
+            appBar: AppBar(
+              title: _buildLocationHeader(controller),
+              automaticallyImplyLeading: false,
             ),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          onPressed: () {
-            Navigator.pushNamed(context, AppRoutes.notification);
-          },
-          icon: Stack(
-            children: <Widget>[
-              Icon(Icons.notifications_none_outlined, color: Colors.grey.shade700, size: 28),
-              Positioned(
-                right: 4,
-                top: 4,
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(6),
+            body: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: _buildCategorySection(controller),
                   ),
-                  constraints: const BoxConstraints(
-                    minWidth: 8,
-                    minHeight: 8,
+                  const SizedBox(height: 20),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text("Special Offers", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   ),
-                ),
-              )
-            ],
-          ),
-        ),
-        IconButton(
-          onPressed: () {},
-          icon: Icon(Icons.search, color: Colors.grey.shade700, size: 28),
-        ),
-        const SizedBox(width: 8),
-      ],
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(70.0),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 12.0),
-          child: _buildLocationHeader(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      height: 65,
-      decoration: const BoxDecoration(
-        color: Color(0xFF4A2C3F),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _navItem(FontAwesomeIcons.houseChimney, "Home", 0),
-          _navItem(FontAwesomeIcons.store, "Salons", 1),
-          _navItem(FontAwesomeIcons.solidCalendar, "Bookings", 2),
-          _navItem(FontAwesomeIcons.userDoctor, "doctor", 3),
-          _navItem(FontAwesomeIcons.boxOpen, "products", 4),
-        ],
-      ),
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, int index) {
-    final bool isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () {
-        if (index == 4) {
-          Navigator.pushReplacementNamed(context, AppRoutes.products);
-        } else if (index == 2) {
-          setState(() {
-            _currentIndex = index;
-          });
-        } else {
-          setState(() {
-            _currentIndex = index;
-          });
-        }
-      },
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.white : Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              icon,
-              size: 24,
-              color: isSelected ? const Color(0xFF4A2C3F) : Colors.white,
-            ),
-          ),
-          if (isSelected) ...[
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16.0),
+                    child: _buildOfferCarousel(controller),
+                  ),
+                  const SizedBox(height: 20),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text("Popular Salons", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16.0),
+                    child: _buildPopularSalonList(controller),
+                  ),
+                  const SizedBox(height: 20),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text("Recommended for you", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16.0),
+                    child: _buildRecommendedSalonList(controller),
+                  ),
+                  const SizedBox(height: 20),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text("Latest Products", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: _buildProductSection(controller),
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
             ),
-          ],
-        ],
+            bottomNavigationBar: _buildBottomNav(),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildLocationHeader() {
+  Widget _buildLocationHeader(HomeController controller) {
     return InkWell(
-      onTap: _openMapPicker,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-        decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300)),
+      onTap: _getCurrentLocation,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
         child: Row(
           children: [
             Icon(Icons.location_on_outlined, color: Colors.grey.shade600),
@@ -292,14 +109,63 @@ class _HomeState extends State<Home> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const Icon(Icons.arrow_drop_down, color: Colors.grey),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCategorySection() {
+  Future<void> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      setState(() {
+        _locationMessage = "Location services are disabled.";
+      });
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        setState(() {
+          _locationMessage = "Location permissions are denied";
+        });
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      setState(() {
+        _locationMessage = "Location permissions are permanently denied, we cannot request permissions.";
+      });
+      return;
+    }
+
+    try {
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        setState(() {
+          _locationMessage = "${place.subLocality}, ${place.locality} ${place.postalCode}";
+        });
+      } else {
+        setState(() {
+          _locationMessage = "No address found for the location.";
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _locationMessage = "Failed to get location.";
+      });
+    }
+  }
+
+  Widget _buildCategorySection(HomeController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -307,9 +173,9 @@ class _HomeState extends State<Home> {
           height: 100,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: _controller.categories.length,
+            itemCount: controller.categories.length,
             itemBuilder: (context, index) {
-              final category = _controller.categories[index];
+              final category = controller.categories[index];
               return _buildCategoryItem(category);
             },
           ),
@@ -364,13 +230,13 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildOfferCarousel() {
+  Widget _buildOfferCarousel(HomeController controller) {
     return SizedBox(
       height: 160,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: _controller.offers.length,
-        itemBuilder: (ctx, index) => _buildOfferCard(_controller.offers[index]),
+        itemCount: controller.offers.length,
+        itemBuilder: (ctx, index) => _buildOfferCard(controller.offers[index]),
       ),
     );
   }
@@ -396,7 +262,7 @@ class _HomeState extends State<Home> {
                 );
               },
               errorBuilder: (context, error, stackTrace) =>
-                  const Center(child: Icon(Icons.error, color: Colors.red)),
+              const Center(child: Icon(Icons.error, color: Colors.red)),
             ),
             Container(
               decoration: BoxDecoration(
@@ -447,13 +313,19 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildPopularSalonList() {
+  Widget _buildPopularSalonList(HomeController controller) {
+    if (controller.isLoading && controller.popularSalons.isEmpty) {
+      return const SizedBox(
+        height: 245,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
     return SizedBox(
       height: 245,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: _controller.popularSalons.length,
-        itemBuilder: (ctx, index) => _buildPopularSalonCard(_controller.popularSalons[index], context),
+        itemCount: controller.popularSalons.length,
+        itemBuilder: (ctx, index) => _buildPopularSalonCard(controller.popularSalons[index], ctx),
       ),
     );
   }
@@ -465,11 +337,19 @@ class _HomeState extends State<Home> {
         onTap: () {
           Navigator.pushNamed(context, AppRoutes.salonDetails, arguments: {'salon': salon, 'scrollToProducts': false});
         },
-        child: Card(
-          margin: const EdgeInsets.only(right: 15),
-          elevation: 2,
-          shadowColor: Colors.black.withOpacity(0.1),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: Offset(0, 2), // changes position of shadow
+              ),
+            ],
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -484,18 +364,33 @@ class _HomeState extends State<Home> {
                       fit: BoxFit.cover,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
-                        return Shimmer.fromColors(
-                          baseColor: Colors.grey[300]!,
-                          highlightColor: Colors.grey[100]!,
-                          child: Container(color: Colors.white, height: 120, width: double.infinity),
+                        return Container(
+                          height: 120,
+                          width: double.infinity,
+                          color: Colors.grey[200],
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          ),
                         );
                       },
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           height: 120,
                           width: double.infinity,
-                          color: Colors.grey[200],
-                          child: Icon(Icons.broken_image, color: Colors.grey[400], size: 40),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.image_outlined,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
                         );
                       },
                     ),
@@ -516,7 +411,7 @@ class _HomeState extends State<Home> {
                 ],
               ),
               Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: const EdgeInsets.only(top: 12, bottom: 8, left: 12, right: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -538,24 +433,26 @@ class _HomeState extends State<Home> {
                     ),
                     const SizedBox(height: 4),
                     Text(salon.salonType, style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(Icons.location_on, color: Colors.grey.shade600, size: 12),
+                        Icon(Icons.location_on, size: 12, color: Colors.red.shade400),
                         const SizedBox(width: 4),
                         Expanded(
-                            child: Text(salon.address,
-                                style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis)),
+                          child: Text(
+                            salon.address,
+                            style: TextStyle(color: Colors.grey[600], fontSize: 10),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(Icons.people_alt_outlined, color: Colors.grey.shade600, size: 14),
+                        Icon(Icons.people_alt_outlined, color: Colors.grey.shade600, size: 12),
                         const SizedBox(width: 4),
-                        Text('${salon.clientCount}+ Clients', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                        Text('${salon.clientCount}+ Clients', style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
                       ],
                     ),
                   ],
@@ -568,117 +465,216 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildRecommendedSalonList() {
+  Widget _buildRecommendedSalonList(HomeController controller) {
+    if (controller.isLoading && controller.recommendedSalons.isEmpty) {
+      return const SizedBox(
+        height: 225,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
     return SizedBox(
       height: 225,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: _controller.recommendedSalons.length,
-        itemBuilder: (ctx, index) => _buildPopularSalonCard(_controller.recommendedSalons[index], context),
+        itemCount: controller.recommendedSalons.length,
+        itemBuilder: (ctx, index) => _buildPopularSalonCard(controller.recommendedSalons[index], ctx),
       ),
     );
   }
 
-  Widget _buildProductSection() {
-    return FutureBuilder<List<Product>>(
-      future: _productsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No products found'));
-        } else {
-          final products = snapshot.data!.take(4).toList();
-          return GridView.builder(
-            itemCount: products.length,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
-              childAspectRatio: 0.65, // Adjusted to match product page
-            ),
-            itemBuilder: (context, index) {
-              return ProductCard(product: products[index]);
-            },
-          );
-        }
+  Widget _buildProductSection(HomeController controller) {
+    if (controller.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (controller.products.isEmpty) {
+      return const Center(child: Text('No products found'));
+    }
+    return GridView.builder(
+      itemCount: controller.products.length,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        childAspectRatio: 0.55,
+      ),
+      itemBuilder: (context, index) {
+        return _buildProductCard(controller.products[index]);
       },
     );
   }
-}
 
-class HomeScreenContent extends StatelessWidget {
-  const HomeScreenContent({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final _HomeState? state = context.findAncestorStateOfType<_HomeState>();
-    if (state == null) {
-      return const Center(child: Text('Error: Could not find Home state'));
-    }
-    return SingleChildScrollView(
+  Widget _buildProductCard(Product product) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: SizedBox(
+              width: double.infinity,
+              height: 120,
+              child: Image.network(
+                product.image,
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+                errorBuilder: (_, __, ___) => Container(
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.broken_image, size: 40),
+                ),
+              ),
+            ),
+          ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: state._buildCategorySection(),
-          ),
-          const SizedBox(height: 20),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text("Special Offers", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.only(left: 16.0),
-            child: state._buildOfferCarousel(),
-          ),
-          const SizedBox(height: 20),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text("Popular Salons", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.only(left: 16.0),
-            child: state._buildPopularSalonList(),
-          ),
-          const SizedBox(height: 20),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text("Recommended for you", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.only(left: 16.0),
-            child: state._buildRecommendedSalonList(),
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Latest Products", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, AppRoutes.products),
-                  child: const Text("See All"),
-                )
+                Text(
+                  product.category,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  product.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  product.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  "₹${product.salePrice.toStringAsFixed(0)}/-",
+                  style: TextStyle(
+                    color: Colors.pink.shade600,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: state._buildProductSection(),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SizedBox(
+                  height: 32,
+                  child: OutlinedButton(
+                    onPressed: () {},
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      side: BorderSide(color: Colors.grey.shade400),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      "Buy Now",
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Icon(Icons.favorite_border, size: 20, color: Colors.grey.shade600),
+                    const SizedBox(width: 8),
+                    Icon(Icons.shopping_cart_outlined, size: 20, color: Colors.grey.shade600),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      height: 65,
+      decoration: const BoxDecoration(
+        color: Color(0xFF4A2C3F), // Dark purple
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _navItem(FontAwesomeIcons.houseChimney, "Home", 0),
+          _navItem(FontAwesomeIcons.store, "Salons", 1),
+          _navItem(FontAwesomeIcons.solidCalendar, "Bookings", 2),
+          _navItem(FontAwesomeIcons.userDoctor, "doctor", 3),
+          _navItem(FontAwesomeIcons.boxOpen, "products", 4),
+        ],
+      ),
+    );
+  }
+
+  Widget _navItem(IconData icon, String label, int index) {
+    final bool isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () {
+        if (index == 4) {
+          Navigator.pushReplacementNamed(context, AppRoutes.products);
+        } else {
+          setState(() {
+            _currentIndex = index;
+          });
+        }
+      },
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.white : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              icon,
+              size: 24,
+              color: isSelected ? const Color(0xFF4A2C3F) : Colors.white,
+            ),
+          ),
+          if (isSelected) ...[
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+              ),
+            ),
+          ],
         ],
       ),
     );

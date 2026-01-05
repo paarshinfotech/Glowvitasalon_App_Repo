@@ -60,9 +60,12 @@ class RelatedProductCard extends StatelessWidget {
                     );
                   },
                   errorBuilder: (_, __, ___) => Container(
-                    color: Colors.grey[300],
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     child: const Icon(
-                      Icons.broken_image_outlined,
+                      Icons.image_outlined,
                       size: 40,
                       color: Colors.grey,
                     ),
