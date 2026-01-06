@@ -39,6 +39,16 @@ class _HomeState extends State<Home> {
                 ? AppBar(
                     title: _buildLocationHeader(controller),
                     automaticallyImplyLeading: false,
+                    actions: [
+                      IconButton(
+                        onPressed: () {},
+                        icon: const Icon(
+                          Icons.notifications_outlined,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     bottom: PreferredSize(
                       preferredSize: const Size.fromHeight(60.0),
                       child: Padding(
@@ -206,6 +216,12 @@ class _HomeState extends State<Home> {
   }
 
   Widget _buildCategorySection(HomeController controller) {
+    if (controller.isLoading && controller.categories.isEmpty) {
+      return const SizedBox(
+        height: 100,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
