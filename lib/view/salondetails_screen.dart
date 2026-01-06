@@ -1183,12 +1183,37 @@ class SalonDetailsScreen extends StatelessWidget {
       ),
       priceWidget,
       ElevatedButton(
-        onPressed: () {
+        onPressed: () async {
           if (controller.selectedTime != null) {
             if (controller.serviceType == ServiceType.wedding) {
               _showLocationPreferenceDialog(context, controller);
             } else {
-              _showBookingConfirmation(context, controller);
+              if (controller.bookingPreference ==
+                  BookingPreference.homeService) {
+                // Individual Home Service Flow
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MapPickerScreen(),
+                  ),
+                );
+
+                if (result != null && result is Map) {
+                  controller.setUserAddress(
+                    address: result['address'] ?? '',
+                    city: result['city'] ?? '',
+                    state: result['state'] ?? '',
+                    pincode: result['pincode'] ?? '',
+                    lat: result['lat'] ?? 0.0,
+                    lng: result['lng'] ?? 0.0,
+                  );
+                  if (context.mounted) {
+                    _showBookingConfirmation(context, controller);
+                  }
+                }
+              } else {
+                _showBookingConfirmation(context, controller);
+              }
             }
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -1620,10 +1645,16 @@ class SalonDetailsScreen extends StatelessWidget {
                 _buildPaymentOption(
                   setModalState,
                   controller,
-                  'Pay At Salon',
-                  'Pay at the salon during your visit',
+                  controller.bookingPreference == BookingPreference.homeService
+                      ? 'Pay At Home'
+                      : 'Pay At Salon',
+                  controller.bookingPreference == BookingPreference.homeService
+                      ? 'Pay comfortably at your home'
+                      : 'Pay at the salon during your visit',
                   PaymentMethod.payAtSalon,
-                  Icons.store_mall_directory_outlined,
+                  controller.bookingPreference == BookingPreference.homeService
+                      ? Icons.home_outlined
+                      : Icons.store_mall_directory_outlined,
                 ),
                 const SizedBox(height: 16),
                 _buildPaymentOption(
