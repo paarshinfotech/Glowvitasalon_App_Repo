@@ -7,12 +7,14 @@ import 'package:glow_vita_salon/widget/coupon_card.dart';
 import 'package:glow_vita_salon/widget/product_card.dart';
 import 'package:glow_vita_salon/widget/service_card.dart';
 import 'package:glow_vita_salon/widget/specialist_avatar.dart';
+import 'package:glow_vita_salon/widget/wedding_package_card.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import 'package:glow_vita_salon/model/wedding_package.dart';
 
 import 'package:glow_vita_salon/view/home.dart';
+import 'package:glow_vita_salon/view/map_picker_screen.dart';
 import '../model/product.dart';
 import '../model/feedback.dart';
 
@@ -113,183 +115,13 @@ class SalonDetailsScreen extends StatelessWidget {
           }
         }
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          child: GestureDetector(
-            onTap: () {
-              _showCustomizePackageModal(context, controller, package);
-            },
-            child: Container(
-              height: 120, // Strict height constraint
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFF4A2C3F)
-                      : Colors.grey.shade300,
-                  width: isSelected ? 2 : 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 5,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  // Image Section - Left Side
-                  if (package.imageUrl != null)
-                    ClipRRect(
-                      borderRadius: const BorderRadius.horizontal(
-                        left: Radius.circular(12),
-                      ),
-                      child: Image.network(
-                        package.imageUrl!,
-                        width: 100,
-                        height: 120,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-
-                  // Content Section - Right Side
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment
-                            .spaceBetween, // Distribute vertically
-                        children: [
-                          // Header Row: Name + Check
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  package.name,
-                                  style: const TextStyle(
-                                    fontSize: 15, // Slightly smaller
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (isSelected)
-                                const Padding(
-                                  padding: EdgeInsets.only(left: 4),
-                                  child: Icon(
-                                    Icons.check_circle,
-                                    color: Color(0xFF4A2C3F),
-                                    size: 18,
-                                  ),
-                                ),
-                            ],
-                          ),
-
-                          // Middle Row: Price & Duration
-                          Row(
-                            children: [
-                              Text(
-                                '₹${displayPrice.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF4A2C3F),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                Icons.access_time,
-                                size: 12,
-                                color: Colors.grey[600],
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                package.duration,
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          // Bottom Row: Compact Buttons
-                          Row(
-                            children: [
-                              Expanded(
-                                child: SizedBox(
-                                  height: 32, // Minimal button height
-                                  child: OutlinedButton(
-                                    onPressed: () {
-                                      _showCustomizePackageModal(
-                                        context,
-                                        controller,
-                                        package,
-                                      );
-                                    },
-                                    style: OutlinedButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      side: const BorderSide(
-                                        color: Color(0xFF4A2C3F),
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'View',
-                                      style: TextStyle(
-                                        color: Color(0xFF4A2C3F),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: SizedBox(
-                                  height: 32,
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      controller.togglePackage(package);
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      backgroundColor: isSelected
-                                          ? Colors.red.shade400
-                                          : const Color(0xFF4A2C3F),
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      isSelected ? 'Remove' : 'Select',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        return WeddingPackageCard(
+          package: package,
+          isSelected: isSelected,
+          displayPrice: displayPrice,
+          onViewTap: () =>
+              _showCustomizePackageModal(context, controller, package),
+          onSelectTap: () => controller.togglePackage(package),
         );
       }, childCount: controller.allWeddingPackages.length),
     );
@@ -1353,7 +1185,11 @@ class SalonDetailsScreen extends StatelessWidget {
       ElevatedButton(
         onPressed: () {
           if (controller.selectedTime != null) {
-            _showBookingConfirmation(context, controller);
+            if (controller.serviceType == ServiceType.wedding) {
+              _showLocationPreferenceDialog(context, controller);
+            } else {
+              _showBookingConfirmation(context, controller);
+            }
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -1377,6 +1213,130 @@ class SalonDetailsScreen extends StatelessWidget {
         ),
       ),
     ];
+  }
+
+  void _showLocationPreferenceDialog(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Where would you like the service?',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        controller.setBookingPreference(
+                          BookingPreference.visitSalon,
+                        );
+                        _showBookingConfirmation(context, controller);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xFF4A2C3F)),
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white,
+                        ),
+                        child: const Column(
+                          children: [
+                            Icon(
+                              Icons.store,
+                              size: 40,
+                              color: Color(0xFF4A2C3F),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'At Salon',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4A2C3F),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () async {
+                        Navigator.pop(sheetContext); // Close bottom sheet first
+                        controller.setBookingPreference(
+                          BookingPreference.homeService,
+                        );
+
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MapPickerScreen(),
+                          ),
+                        );
+
+                        if (result != null && result is Map) {
+                          controller.setUserAddress(
+                            address: result['address'] ?? '',
+                            city: result['city'] ?? '',
+                            state: result['state'] ?? '',
+                            pincode: result['pincode'] ?? '',
+                            lat: result['lat'] ?? 0.0,
+                            lng: result['lng'] ?? 0.0,
+                          );
+                          if (context.mounted) {
+                            _showBookingConfirmation(context, controller);
+                          }
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xFF4A2C3F)),
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white,
+                        ),
+                        child: const Column(
+                          children: [
+                            Icon(
+                              Icons.location_on,
+                              size: 40,
+                              color: Color(0xFF4A2C3F),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'At Wedding Place',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF4A2C3F),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _showBookingConfirmation(
@@ -1508,6 +1468,70 @@ class SalonDetailsScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+
+                // Location Details
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        controller.bookingPreference ==
+                                BookingPreference.visitSalon
+                            ? Icons.store
+                            : Icons.location_on,
+                        color: const Color(0xFF4A2C3F),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              controller.bookingPreference ==
+                                      BookingPreference.visitSalon
+                                  ? 'At Salon'
+                                  : 'At Wedding Place',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (controller.bookingPreference ==
+                                    BookingPreference.homeService &&
+                                controller.userAddress != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                controller.userAddress!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[800],
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (controller.userCity != null)
+                                Text(
+                                  controller.userCity!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 24),
                 _buildPriceRow(
                   'Subtotal :',

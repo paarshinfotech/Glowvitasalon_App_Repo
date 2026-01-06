@@ -77,6 +77,25 @@ class SalonDetailsController extends ChangeNotifier {
   PaymentMethod? _paymentMethod;
   PaymentMethod? get paymentMethod => _paymentMethod;
 
+  // Address fields for wedding/home service
+  String? _userAddress;
+  String? get userAddress => _userAddress;
+
+  String? _userCity;
+  String? get userCity => _userCity;
+
+  String? _userState;
+  String? get userState => _userState;
+
+  String? _userPincode;
+  String? get userPincode => _userPincode;
+
+  double? _userLat;
+  double? get userLat => _userLat;
+
+  double? _userLng;
+  double? get userLng => _userLng;
+
   final List<String> _serviceCategories = [
     'All Categories',
     'Hair Cuts',
@@ -515,6 +534,23 @@ class SalonDetailsController extends ChangeNotifier {
       0,
       (sum, service) => sum + service.price,
     );
+  }
+
+  void setUserAddress({
+    required String address,
+    required String city,
+    required String state,
+    required String pincode,
+    required double lat,
+    required double lng,
+  }) {
+    _userAddress = address;
+    _userCity = city;
+    _userState = state;
+    _userPincode = pincode;
+    _userLat = lat;
+    _userLng = lng;
+    notifyListeners();
   }
 
   @override
