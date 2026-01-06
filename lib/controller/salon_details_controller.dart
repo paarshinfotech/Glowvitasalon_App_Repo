@@ -19,6 +19,7 @@ enum BookingPreference { visitSalon, homeService }
 class SalonDetailsController extends ChangeNotifier {
   SalonDetailsController(this.salon) {
     _pageController = PageController();
+    _scrollController = ScrollController();
     _imageUrls = [salon.imageUrl, salon.imageUrl, salon.imageUrl];
     _productsFuture = ApiService.getProducts();
   }
@@ -27,6 +28,11 @@ class SalonDetailsController extends ChangeNotifier {
 
   late final PageController _pageController;
   PageController get pageController => _pageController;
+
+  late final ScrollController _scrollController;
+  ScrollController get scrollController => _scrollController;
+
+  final GlobalKey productsKey = GlobalKey();
 
   int _currentPage = 0;
   int get currentPage => _currentPage;
@@ -61,6 +67,9 @@ class SalonDetailsController extends ChangeNotifier {
 
   final FeedbackController _feedbackController = FeedbackController();
   FeedbackController get feedbackController => _feedbackController;
+
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
 
   SalonDetailsState _currentState = SalonDetailsState.services;
   SalonDetailsState get currentState => _currentState;
