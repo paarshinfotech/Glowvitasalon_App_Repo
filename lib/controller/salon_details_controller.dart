@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:glow_vita_salon/model/feedback.dart';
 import 'package:glow_vita_salon/model/product.dart';
 import 'package:glow_vita_salon/model/salon.dart';
@@ -17,14 +18,36 @@ enum ServiceType { individual, wedding }
 enum BookingPreference { visitSalon, homeService }
 
 class SalonDetailsController extends ChangeNotifier {
+  Timer? _autoSlideTimer;
+
   SalonDetailsController(this.salon) {
     _pageController = PageController();
     _scrollController = ScrollController();
-    _imageUrls = [salon.imageUrl, salon.imageUrl, salon.imageUrl];
-    _productsFuture = ApiService.getProducts();
+
+    // Initialize with passed data
+    _services = List.from(salon.services);
+
+    if (salon.gallery.isNotEmpty) {
+      _imageUrls = List.from(salon.gallery);
+    } else {
+      // Fallback to profile image if gallery is empty
+      if (salon.imageUrl.isNotEmpty) {
+        _imageUrls = [salon.imageUrl];
+      } else {
+        _imageUrls = [];
+      }
+    }
+
+    _productsFuture = ApiService.getProducts(); // Ideally filter by vendor?
+
+    // Fetch fresh details
+    _fetchSalonDetails();
+    _startAutoSlide();
   }
 
   final Salon salon;
+  Salon? _fetchedSalon;
+  Salon get currentSalon => _fetchedSalon ?? salon;
 
   late final PageController _pageController;
   PageController get pageController => _pageController;
@@ -37,10 +60,10 @@ class SalonDetailsController extends ChangeNotifier {
   int _currentPage = 0;
   int get currentPage => _currentPage;
 
-  late final List<String> _imageUrls;
+  late List<String> _imageUrls;
   List<String> get imageUrls => _imageUrls;
 
-  String _selectedServiceCategory = 'Hair Cuts';
+  String _selectedServiceCategory = 'All Categories'; // Default
   String get selectedServiceCategory => _selectedServiceCategory;
 
   ServiceType _serviceType = ServiceType.individual;
@@ -105,182 +128,66 @@ class SalonDetailsController extends ChangeNotifier {
   double? _userLng;
   double? get userLng => _userLng;
 
-  final List<String> _serviceCategories = [
-    'All Categories',
-    'Hair Cuts',
-    'Hair Treatment',
-    'Nail Art',
-    'Makeup',
-  ];
-  List<String> get serviceCategories => _serviceCategories;
+  List<String> get serviceCategories {
+    final categories = _services.map((s) => s.category).toSet().toList();
+    categories.sort();
+    return ['All Categories', ...categories];
+  }
 
-  final List<Service> _services = [
-    Service(
-      name: 'Straight Cut',
-      duration: '10 mins - 15 mins',
-      price: 250,
-      category: 'Hair Cuts',
-      imageUrl: 'https://i.pravatar.cc/150?img=1',
-    ),
-    Service(
-      name: 'Layer Cut',
-      duration: '20 mins - 30 mins',
-      price: 500,
-      category: 'Hair Cuts',
-      isDiscounted: true,
-      discountLabel: 'Save 50%',
-      imageUrl: 'https://i.pravatar.cc/150?img=2',
-    ),
-    Service(
-      name: 'Step Cut',
-      duration: '25 mins - 35 mins',
-      price: 400,
-      category: 'Hair Cuts',
-      imageUrl: 'https://i.pravatar.cc/150?img=3',
-    ),
-    Service(
-      name: 'Feather Cut',
-      duration: '20 mins - 30 mins',
-      price: 350,
-      category: 'Hair Cuts',
-      imageUrl: 'https://i.pravatar.cc/150?img=4',
-    ),
-    Service(
-      name: 'Kids Hair Cut (Boys/Girls)',
-      duration: '10 mins - 20 mins',
-      price: 150,
-      category: 'Hair Cuts',
-      imageUrl: 'https://i.pravatar.cc/150?img=5',
-    ),
-    Service(
-      name: 'Advanced Haircut (Any Style)',
-      duration: '30 mins - 45 mins',
-      price: 600,
-      category: 'Hair Cuts',
-      imageUrl: 'https://i.pravatar.cc/150?img=6',
-    ),
-    Service(
-      name: 'Hair Spa',
-      duration: '45 mins',
-      price: 800,
-      category: 'Hair Treatment',
-      imageUrl: 'https://i.pravatar.cc/150?img=7',
-    ),
-    Service(
-      name: 'Manicure',
-      duration: '30 mins',
-      price: 400,
-      category: 'Nail Art',
-      imageUrl: 'https://i.pravatar.cc/150?img=8',
-    ),
-    Service(
-      name: 'Pedicure',
-      duration: '45 mins',
-      price: 600,
-      category: 'Nail Art',
-      imageUrl: 'https://i.pravatar.cc/150?img=9',
-    ),
-    Service(
-      name: 'Bridal Makeup',
-      duration: '2 hours',
-      price: 5000,
-      category: 'Makeup',
-      imageUrl: 'https://i.pravatar.cc/150?img=10',
-    ),
-  ];
+  late List<Service> _services;
   List<Service> get services => _services;
+
+  Future<void> _fetchSalonDetails() async {
+    print('Fetching details for ID: ${salon.id}');
+    // If we don't have an ID, we can't fetch.
+    if (salon.id.startsWith('static_') || salon.id.isEmpty) {
+      print('Skipping fetch: Invalid ID');
+      return;
+    }
+
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final vendor = await ApiService.getVendorDetails(salon.id);
+      print(
+        'Fetched vendor: ${vendor.businessName}, Gallery count: ${vendor.gallery.length}',
+      );
+
+      _fetchedSalon = Salon.fromVendor(vendor);
+
+      _services = _fetchedSalon!.services;
+
+      if (_fetchedSalon!.gallery.isNotEmpty) {
+        print('Updating gallery images: ${_fetchedSalon!.gallery.length}');
+        _imageUrls = List.from(_fetchedSalon!.gallery);
+
+        // Reset page index
+        _currentPage = 0;
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(0);
+        }
+      } else {
+        print('Fetched gallery is empty');
+      }
+
+      // Reset category selection and clear services to prevent stale filtered list
+      _selectedServiceCategory = 'All Categories';
+      _individualServices.clear();
+
+      notifyListeners();
+    } catch (e) {
+      print('Error fetching salon details: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   final List<WeddingPackage> _weddingPackages = [];
   List<WeddingPackage> get weddingPackages => _weddingPackages;
 
   List<WeddingPackage> get allWeddingPackages {
-    if (_weddingPackages.isEmpty) {
-      // Initialize wedding packages if empty
-      _weddingPackages.addAll([
-        WeddingPackage(
-          name: 'Silver Glow Bride',
-          description:
-              'Perfect for intimate ceremonies. Includes essential bridal makeup and hair styling.',
-          duration: '4 hours',
-          price: 5650,
-          imageUrl: 'https://i.pravatar.cc/150?img=10',
-          services: [
-            PackageService(
-              service: _services.firstWhere((s) => s.name == 'Bridal Makeup'),
-              isLocked: true,
-            ),
-            PackageService(
-              service: _services.firstWhere((s) => s.name == 'Straight Cut'),
-              isLocked: false,
-            ), // Optional
-            PackageService(
-              service: _services.firstWhere((s) => s.name == 'Manicure'),
-              isLocked: false,
-            ), // Optional
-          ],
-        ),
-        WeddingPackage(
-          name: 'Gold Radiance Bride',
-          description:
-              'Our most popular package. Comprehensive care for your big day.',
-          duration: '6 hours',
-          price: 7000,
-          imageUrl: 'https://i.pravatar.cc/150?img=11',
-          services: [
-            PackageService(
-              service: _services.firstWhere((s) => s.name == 'Bridal Makeup'),
-              isLocked: true,
-            ),
-            PackageService(
-              service: _services.firstWhere(
-                (s) => s.name == 'Advanced Haircut (Any Style)',
-              ),
-              isLocked: true,
-            ),
-            PackageService(
-              service: _services.firstWhere((s) => s.name == 'Hair Spa'),
-              isLocked: false,
-            ),
-            PackageService(
-              service: _services.firstWhere((s) => s.name == 'Pedicure'),
-              isLocked: false,
-            ),
-          ],
-        ),
-        WeddingPackage(
-          name: 'Platinum Luxury Bride',
-          description:
-              'The ultimate indulgence. All-inclusive royal treatment.',
-          duration: '8 hours',
-          price: 7400,
-          imageUrl: 'https://i.pravatar.cc/150?img=12',
-          services: [
-            PackageService(
-              service: _services.firstWhere((s) => s.name == 'Bridal Makeup'),
-              isLocked: true,
-            ),
-            PackageService(
-              service: _services.firstWhere(
-                (s) => s.name == 'Advanced Haircut (Any Style)',
-              ),
-              isLocked: true,
-            ),
-            PackageService(
-              service: _services.firstWhere((s) => s.name == 'Hair Spa'),
-              isLocked: false,
-            ),
-            PackageService(
-              service: _services.firstWhere((s) => s.name == 'Manicure'),
-              isLocked: false,
-            ),
-            PackageService(
-              service: _services.firstWhere((s) => s.name == 'Pedicure'),
-              isLocked: false,
-            ),
-          ],
-        ),
-      ]);
-    }
     return _weddingPackages;
   }
 
@@ -562,43 +469,96 @@ class SalonDetailsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _startAutoSlide() {
+    _autoSlideTimer?.cancel();
+    _autoSlideTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (_pageController.hasClients && _imageUrls.length > 1) {
+        int nextPage = _currentPage + 1;
+        if (nextPage >= _imageUrls.length) {
+          nextPage = 0;
+        }
+        _pageController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _autoSlideTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
 
+  // Capabilities based on subCategories
+  bool get hasHomeService => currentSalon.subCategories.contains('at-home');
+  bool get hasSalonService => currentSalon.subCategories.contains('at-salon');
+
+  // Assuming 'custom-location' implies wedding/external capability for packages
+  bool get hasWeddingService =>
+      currentSalon.subCategories.contains('custom-location');
+
   List<Service> get filteredServices {
+    List<Service> baseList = _services;
+
+    // Filter by Service Type (High level)
     if (_serviceType == ServiceType.wedding) {
-      return _services.where((s) => s.category == 'Makeup').toList();
-    } else {
-      if (_selectedServiceCategory == 'All Categories') {
-        return _services.where((s) => s.category != 'Makeup').toList();
-      }
-      return _services
-          .where((s) => s.category == _selectedServiceCategory)
-          .toList();
+      // Typically wedding services are specific.
+      // If using packages, this list might not be used directly or used for "Add-ons".
+      // If no packages are available but wedding mode is active, maybe show all wedding-available services?
+      return baseList.where((s) => s.weddingServiceAvailable == true).toList();
     }
+
+    // Filter by Booking Preference (Home vs Salon)
+    if (_bookingPreference == BookingPreference.homeService) {
+      baseList = baseList.where((s) => s.homeServiceAvailable == true).toList();
+    } else {
+      // Visit Salon: usually all services unless restricted?
+      // Assuming all services are available at salon unless specified (which our model doesn't explicitly restrict).
+    }
+
+    // Filter by Category
+    if (_selectedServiceCategory == 'All Categories') {
+      // Exclude 'Makeup' from general list if needed?
+      // The previous logic excluded 'Makeup'. I'll keep that behavior if desired,
+      // but strictly speaking 'All Categories' should probably include all consistent with the mode.
+      // Pre-existing logic: `s.category != 'Makeup'`.
+      // I will respect typical "Salon" flow which separates Makeup/Packages.
+      return baseList.where((s) => s.category != 'Makeup').toList();
+    }
+
+    return baseList
+        .where((s) => s.category == _selectedServiceCategory)
+        .toList();
   }
 
   bool isStaffSelected(Specialist specialist) {
     return _selectedStaff.containsValue(specialist);
   }
 
-  void handleBackButton() {
+  bool handleBackButton() {
     if (selectedPackages.isNotEmpty &&
         _currentState == SalonDetailsState.dateTime) {
       _currentState = SalonDetailsState.services;
       notifyListeners();
-      return;
+      return true;
     }
 
     if (_currentState == SalonDetailsState.dateTime) {
       _currentState = SalonDetailsState.staff;
+      notifyListeners();
+      return true;
     } else if (_currentState == SalonDetailsState.staff) {
       _currentState = SalonDetailsState.services;
+      notifyListeners();
+      return true;
     }
-    notifyListeners();
+
+    // Not handled internally, allow default back (pop)
+    return false;
   }
 
   void reset() {

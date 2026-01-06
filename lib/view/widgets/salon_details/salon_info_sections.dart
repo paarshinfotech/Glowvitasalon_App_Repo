@@ -135,7 +135,9 @@ class AboutSection extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'Welcome to ${salon.name}, your premier destination for professional grooming services. Our team of skilled professionals is dedicated to providing top-notch beauty and wellness experiences tailored to your needs.',
+            salon.description.isNotEmpty
+                ? salon.description
+                : 'Welcome to ${salon.name}, your premier destination for professional grooming services. Our team of skilled professionals is dedicated to providing top-notch beauty and wellness experiences tailored to your needs.',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[800],

@@ -42,8 +42,8 @@ class SalonDetailsScreen extends StatelessWidget {
 
           return WillPopScope(
             onWillPop: () async {
-              controller.handleBackButton();
-              return false; // Prevent default pop
+              final handled = controller.handleBackButton();
+              return !handled;
             },
             child: Scaffold(
               body: CustomScrollView(
@@ -52,11 +52,15 @@ class SalonDetailsScreen extends StatelessWidget {
                   SliverToBoxAdapter(
                     child: SalonImageCarousel(
                       controller: controller,
-                      salon: salon,
+                      salon: controller.currentSalon,
                     ),
                   ),
-                  SliverToBoxAdapter(child: ActionsSection(salon: salon)),
-                  SliverToBoxAdapter(child: OffersSection(salon: salon)),
+                  SliverToBoxAdapter(
+                    child: ActionsSection(salon: controller.currentSalon),
+                  ),
+                  SliverToBoxAdapter(
+                    child: OffersSection(salon: controller.currentSalon),
+                  ),
 
                   // Service Selection Section
                   if (controller.currentState ==
@@ -92,7 +96,9 @@ class SalonDetailsScreen extends StatelessWidget {
                     child: ProductSection(controller: controller),
                   ),
 
-                  SliverToBoxAdapter(child: AboutSection(salon: salon)),
+                  SliverToBoxAdapter(
+                    child: AboutSection(salon: controller.currentSalon),
+                  ),
 
                   SliverToBoxAdapter(
                     child: FeedbackSection(controller: controller),

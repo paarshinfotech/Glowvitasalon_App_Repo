@@ -14,6 +14,11 @@ class ServiceSelectionHeader extends StatelessWidget {
         controller.serviceType == ServiceType.individual;
     bool isWeddingSelected = controller.serviceType == ServiceType.wedding;
 
+    // Determine visibility based on capabilities
+    bool showWeddingOption = controller.hasWeddingService;
+    // Or check if any services are wedding enabled?
+    // For now rely on subCategory 'custom-location' as per plan.
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24.0),
       child: Column(
@@ -72,35 +77,39 @@ class ServiceSelectionHeader extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () =>
-                        controller.setServiceType(ServiceType.wedding),
-                    icon: Icon(
-                      Icons.favorite,
-                      color: isWeddingSelected ? Colors.white : Colors.black,
-                      size: 20,
-                    ),
-                    label: Text(
-                      'Wedding Packages',
-                      style: TextStyle(
+                if (showWeddingOption) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () =>
+                          controller.setServiceType(ServiceType.wedding),
+                      icon: Icon(
+                        Icons.favorite,
                         color: isWeddingSelected ? Colors.white : Colors.black,
+                        size: 20,
                       ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isWeddingSelected
-                          ? const Color(0xFF4A2C3F)
-                          : Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      label: Text(
+                        'Wedding Packages',
+                        style: TextStyle(
+                          color: isWeddingSelected
+                              ? Colors.white
+                              : Colors.black,
+                        ),
                       ),
-                      side: isWeddingSelected
-                          ? null
-                          : BorderSide(color: Colors.grey.shade400),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isWeddingSelected
+                            ? const Color(0xFF4A2C3F)
+                            : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        side: isWeddingSelected
+                            ? null
+                            : BorderSide(color: Colors.grey.shade400),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -160,6 +169,10 @@ class BookingPreferenceSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!controller.hasHomeService && !controller.hasSalonService) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0),
       padding: const EdgeInsets.all(16.0),
@@ -215,27 +228,30 @@ class BookingPreferenceSection extends StatelessWidget {
           // Right Side: Buttons
           Column(
             children: [
-              _BookingTypeButton(
-                title: 'Visit Salon',
-                icon: Icons.content_cut,
-                isSelected:
-                    controller.bookingPreference ==
+              if (controller.hasSalonService)
+                _BookingTypeButton(
+                  title: 'Visit Salon',
+                  icon: Icons.content_cut,
+                  isSelected:
+                      controller.bookingPreference ==
+                      BookingPreference.visitSalon,
+                  onTap: () => controller.setBookingPreference(
                     BookingPreference.visitSalon,
-                onTap: () => controller.setBookingPreference(
-                  BookingPreference.visitSalon,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              _BookingTypeButton(
-                title: 'Home Service',
-                icon: Icons.home,
-                isSelected:
-                    controller.bookingPreference ==
+              if (controller.hasSalonService && controller.hasHomeService)
+                const SizedBox(height: 8),
+              if (controller.hasHomeService)
+                _BookingTypeButton(
+                  title: 'Home Service',
+                  icon: Icons.home,
+                  isSelected:
+                      controller.bookingPreference ==
+                      BookingPreference.homeService,
+                  onTap: () => controller.setBookingPreference(
                     BookingPreference.homeService,
-                onTap: () => controller.setBookingPreference(
-                  BookingPreference.homeService,
+                  ),
                 ),
-              ),
             ],
           ),
         ],

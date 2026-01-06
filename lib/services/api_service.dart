@@ -3,7 +3,7 @@ import 'package:glow_vita_salon/model/product_detail.dart';
 
 import '../model/product.dart';
 import '../model/register_request.dart';
-import '../model/vendor.dart' hide Category;
+import '../model/vendor.dart';
 import '../model/category.dart';
 import 'package:http/http.dart' as http;
 
@@ -159,6 +159,42 @@ class ApiService {
     }
   }
 
+  static Future<Vendor> getVendorDetails(String vendorId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/vendors/$vendorId'),
+    );
+
+    print('Vendor API Response Status: ${response.statusCode}');
+    print('Vendor API Response Body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final jsonData = json.decode(response.body);
+
+      // Based on user sample: { "vendor": { ... } }
+      if (jsonData is Map && jsonData.containsKey('vendor')) {
+        return Vendor.fromJson(jsonData['vendor'] as Map<String, dynamic>);
+      } else if (jsonData is Map && jsonData.containsKey('data')) {
+        // Some APIs wrap in data
+        final data = jsonData['data'];
+        if (data is Map && data.containsKey('vendor')) {
+          return Vendor.fromJson(data['vendor'] as Map<String, dynamic>);
+        }
+        if (data is Map) {
+          return Vendor.fromJson(data as Map<String, dynamic>);
+        }
+      }
+
+      // Fallback
+      if (jsonData is Map) {
+        return Vendor.fromJson(jsonData as Map<String, dynamic>);
+      }
+
+      throw Exception('Unexpected response format');
+    } else {
+      throw Exception('Failed to load vendor details');
+    }
+  }
+
   static Future<List<Category>> getCategories() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/api/categories'));
@@ -182,7 +218,9 @@ class ApiService {
           }
         }
 
-        return list.map((e) => Category.fromJson(e)).toList();
+        return list
+            .map((e) => Category.fromJson(e as Map<String, dynamic>))
+            .toList();
       } else {
         throw Exception('Failed to load categories');
       }

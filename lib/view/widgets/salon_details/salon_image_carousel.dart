@@ -19,6 +19,7 @@ class SalonImageCarousel extends StatelessWidget {
         SizedBox(
           height: 280,
           child: PageView.builder(
+            key: ValueKey(controller.imageUrls.length),
             controller: controller.pageController,
             itemCount: controller.imageUrls.length,
             onPageChanged: (index) => controller.onPageChanged(index),
@@ -33,13 +34,15 @@ class SalonImageCarousel extends StatelessWidget {
           ),
         ),
         Positioned.fill(
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                stops: const [0.5, 1.0],
+          child: IgnorePointer(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0.5, 1.0],
+                ),
               ),
             ),
           ),
@@ -115,6 +118,26 @@ class SalonImageCarousel extends StatelessWidget {
                         : Colors.white.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(12),
                   ),
+                ),
+              ),
+            ),
+          ),
+        if (controller.imageUrls.length > 1)
+          Positioned(
+            bottom: 86,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${controller.currentPage + 1}/${controller.imageUrls.length}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),

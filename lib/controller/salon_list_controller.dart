@@ -17,7 +17,7 @@ class SalonListController extends ChangeNotifier {
   void _fetchSalons() async {
     _isLoading = true;
     notifyListeners();
-    
+
     try {
       final vendors = await ApiService.getVendors();
       _salons = vendors.map((vendor) => Salon.fromVendor(vendor)).toList();
@@ -27,22 +27,26 @@ class SalonListController extends ChangeNotifier {
       // Keep the static data as fallback if API fails
       _salons = [
         Salon(
+          id: '6915a50fd303709d2be34774',
           name: 'Nidhi Hair & Nail Salon',
           salonType: 'Hair Salon',
           address: 'KBT Circle, Nashik',
           rating: 4.9,
           clientCount: 299,
-          imageUrl: 'https://images.pexels.com/photos/2811088/pexels-photo-2811088.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+          imageUrl:
+              'https://images.pexels.com/photos/2811088/pexels-photo-2811088.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
           description: 'A premium salon for all your hair and nail needs.',
           hasNewOffer: true,
         ),
         Salon(
+          id: 'static_2',
           name: 'Vishakha Salon',
           salonType: 'Hair Salon',
           address: 'Dream Castle, Nashik',
           rating: 3.4,
           clientCount: 209,
-          imageUrl: 'https://images.pexels.com/photos/705255/pexels-photo-705255.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
+          imageUrl:
+              'https://images.pexels.com/photos/705255/pexels-photo-705255.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
           description: 'Look your best with our expert stylists.',
         ),
       ];
@@ -60,7 +64,7 @@ class SalonListController extends ChangeNotifier {
       _filteredSalons = _salons.where((salon) {
         final queryLower = query.toLowerCase();
         return salon.name.toLowerCase().contains(queryLower) ||
-               salon.address.toLowerCase().contains(queryLower);
+            salon.address.toLowerCase().contains(queryLower);
       }).toList();
     }
     notifyListeners();

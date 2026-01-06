@@ -1,6 +1,8 @@
+import 'package:glow_vita_salon/model/service.dart';
 import 'vendor.dart';
 
 class Salon {
+  final String id;
   final String name;
   final String salonType;
   final String address;
@@ -9,8 +11,12 @@ class Salon {
   final String imageUrl;
   final String description;
   final bool hasNewOffer;
+  final List<Service> services;
+  final List<String> gallery;
+  final List<String> subCategories;
 
   Salon({
+    required this.id,
     required this.name,
     required this.salonType,
     required this.address,
@@ -19,11 +25,15 @@ class Salon {
     required this.imageUrl,
     required this.description,
     this.hasNewOffer = false,
+    this.services = const [],
+    this.gallery = const [],
+    this.subCategories = const [],
   });
 
   // Factory constructor to create a Salon from a Vendor
   factory Salon.fromVendor(Vendor vendor) {
     return Salon(
+      id: vendor.id,
       name: vendor.businessName,
       salonType: vendor.category,
       address: '${vendor.city}, ${vendor.state}',
@@ -32,6 +42,9 @@ class Salon {
       imageUrl: vendor.fullImageUrl,
       description: vendor.description,
       hasNewOffer: false,
+      services: vendor.services,
+      gallery: vendor.fullGalleryUrls,
+      subCategories: vendor.subCategories,
     );
   }
 }
