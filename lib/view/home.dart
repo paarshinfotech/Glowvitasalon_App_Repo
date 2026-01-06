@@ -7,10 +7,13 @@ import 'package:shimmer/shimmer.dart';
 import 'package:glow_vita_salon/model/product.dart';
 import 'package:glow_vita_salon/routes/app_routes.dart';
 import '../controller/home_controller.dart';
+import 'package:glow_vita_salon/view/salon_list_screen.dart';
+import 'package:glow_vita_salon/view/appointments_screen.dart';
 import 'package:provider/provider.dart';
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  final int initialIndex;
+  const Home({super.key, this.initialIndex = 0});
 
   @override
   State<Home> createState() => _HomeState();
@@ -20,87 +23,150 @@ class _HomeState extends State<Home> {
   int _currentIndex = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => HomeController(),
       child: Consumer<HomeController>(
         builder: (context, controller, child) {
           return Scaffold(
-            appBar: AppBar(
-              title: _buildLocationHeader(controller),
-              automaticallyImplyLeading: false,
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(60.0),
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: "Search for 'Massage'",
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
+            appBar: (_currentIndex == 0)
+                ? AppBar(
+                    title: _buildLocationHeader(controller),
+                    automaticallyImplyLeading: false,
+                    bottom: PreferredSize(
+                      preferredSize: const Size.fromHeight(60.0),
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          left: 16,
+                          right: 16,
+                          bottom: 12,
+                        ),
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: "Search for 'Massage'",
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              color: Colors.grey,
+                            ),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 0,
+                            ),
+                          ),
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
                     ),
+                  )
+                : null,
+            body: IndexedStack(
+              index: _currentIndex,
+              children: [
+                // 0: Home
+                SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: _buildCategorySection(controller),
+                      ),
+                      const SizedBox(height: 20),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text(
+                          "Special Offers",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16.0),
+                        child: _buildOfferCarousel(controller),
+                      ),
+                      const SizedBox(height: 20),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text(
+                          "Popular Salons",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16.0),
+                        child: _buildPopularSalonList(controller),
+                      ),
+                      const SizedBox(height: 20),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text(
+                          "Recommended for you",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16.0),
+                        child: _buildRecommendedSalonList(controller),
+                      ),
+                      const SizedBox(height: 20),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Text(
+                          "Latest Products",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: _buildProductSection(controller),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                   ),
                 ),
-              ),
-            ),
-            body: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: _buildCategorySection(controller),
+                // 1: Salons
+                const SalonListScreen(),
+                // 2: Bookings
+                Scaffold(
+                  appBar: AppBar(
+                    title: const Text("Appointments"),
+                    automaticallyImplyLeading: false,
                   ),
-                  const SizedBox(height: 20),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text("Special Offers", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0),
-                    child: _buildOfferCarousel(controller),
-                  ),
-                  const SizedBox(height: 20),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text("Popular Salons", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0),
-                    child: _buildPopularSalonList(controller),
-                  ),
-                  const SizedBox(height: 20),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text("Recommended for you", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0),
-                    child: _buildRecommendedSalonList(controller),
-                  ),
-                  const SizedBox(height: 20),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text("Latest Products", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: _buildProductSection(controller),
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              ),
+                  body: const AppointmentsScreen(),
+                ),
+                // 3: Doctor (Placeholder)
+                const Center(child: Text("Doctor Profile Feature Coming Soon")),
+                // 4: Products (Placeholder as it navigates away? Or keep it here)
+                // Actually the nav logic pushes replacement for 4, so this won't be seen.
+                // But for safety:
+                const Center(child: CircularProgressIndicator()),
+              ],
             ),
             bottomNavigationBar: _buildBottomNav(),
           );
@@ -182,14 +248,18 @@ class _HomeState extends State<Home> {
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
                   return Center(
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                              : null,
-                          color: Colors.pink.shade200));
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                          : null,
+                      color: Colors.pink.shade200,
+                    ),
+                  );
                 },
-                errorBuilder: (context, error, stackTrace) => Icon(Icons.error_outline, color: Colors.pink.shade200),
+                errorBuilder: (context, error, stackTrace) =>
+                    Icon(Icons.error_outline, color: Colors.pink.shade200),
               ),
             ),
             const SizedBox(height: 8),
@@ -236,12 +306,15 @@ class _HomeState extends State<Home> {
                 );
               },
               errorBuilder: (context, error, stackTrace) =>
-              const Center(child: Icon(Icons.error, color: Colors.red)),
+                  const Center(child: Icon(Icons.error, color: Colors.red)),
             ),
             Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.black.withOpacity(0.0), Colors.black.withOpacity(0.8)],
+                  colors: [
+                    Colors.black.withOpacity(0.0),
+                    Colors.black.withOpacity(0.8),
+                  ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   stops: const [0.4, 1.0],
@@ -267,10 +340,7 @@ class _HomeState extends State<Home> {
                   const SizedBox(height: 4),
                   Text(
                     offer.description,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
                   ),
                   const SizedBox(height: 8),
                   Container(
@@ -299,7 +369,8 @@ class _HomeState extends State<Home> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: controller.popularSalons.length,
-        itemBuilder: (ctx, index) => _buildPopularSalonCard(controller.popularSalons[index], ctx),
+        itemBuilder: (ctx, index) =>
+            _buildPopularSalonCard(controller.popularSalons[index], ctx),
       ),
     );
   }
@@ -309,7 +380,11 @@ class _HomeState extends State<Home> {
       width: MediaQuery.of(context).size.width * 0.55,
       child: GestureDetector(
         onTap: () {
-          Navigator.pushNamed(context, AppRoutes.salonDetails, arguments: {'salon': salon, 'scrollToProducts': false});
+          Navigator.pushNamed(
+            context,
+            AppRoutes.salonDetails,
+            arguments: {'salon': salon, 'scrollToProducts': false},
+          );
         },
         child: Container(
           decoration: BoxDecoration(
@@ -330,7 +405,9 @@ class _HomeState extends State<Home> {
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
                     child: Image.network(
                       salon.imageUrl,
                       height: 120,
@@ -346,7 +423,7 @@ class _HomeState extends State<Home> {
                             child: CircularProgressIndicator(
                               value: loadingProgress.expectedTotalBytes != null
                                   ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
+                                        loadingProgress.expectedTotalBytes!
                                   : null,
                             ),
                           ),
@@ -374,18 +451,33 @@ class _HomeState extends State<Home> {
                       top: 12,
                       right: 12,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.red.withOpacity(0.8),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text('NEW OFFER', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'NEW OFFER',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                 ],
               ),
               Padding(
-                padding: const EdgeInsets.only(top: 12, bottom: 8, left: 12, right: 12),
+                padding: const EdgeInsets.only(
+                  top: 12,
+                  bottom: 8,
+                  left: 12,
+                  right: 12,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -394,28 +486,59 @@ class _HomeState extends State<Home> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Flexible(
-                          child: Text(salon.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 2, overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            salon.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         Row(
                           children: [
-                            const Icon(Icons.star, color: Colors.amber, size: 16),
+                            const Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                              size: 16,
+                            ),
                             const SizedBox(width: 4),
-                            Text(salon.rating.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            Text(
+                              salon.rating.toString(),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(salon.salonType, style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                    Text(
+                      salon.salonType,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 11,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(Icons.location_on, size: 12, color: Colors.red.shade400),
+                        Icon(
+                          Icons.location_on,
+                          size: 12,
+                          color: Colors.red.shade400,
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             salon.address,
-                            style: TextStyle(color: Colors.grey[600], fontSize: 10),
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 10,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -424,9 +547,19 @@ class _HomeState extends State<Home> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(Icons.people_alt_outlined, color: Colors.grey.shade600, size: 12),
+                        Icon(
+                          Icons.people_alt_outlined,
+                          color: Colors.grey.shade600,
+                          size: 12,
+                        ),
                         const SizedBox(width: 4),
-                        Text('${salon.clientCount}+ Clients', style: TextStyle(color: Colors.grey.shade600, fontSize: 10)),
+                        Text(
+                          '${salon.clientCount}+ Clients',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 10,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -451,7 +584,8 @@ class _HomeState extends State<Home> {
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: controller.recommendedSalons.length,
-        itemBuilder: (ctx, index) => _buildPopularSalonCard(controller.recommendedSalons[index], ctx),
+        itemBuilder: (ctx, index) =>
+            _buildPopularSalonCard(controller.recommendedSalons[index], ctx),
       ),
     );
   }
@@ -518,10 +652,7 @@ class _HomeState extends State<Home> {
               children: [
                 Text(
                   product.category,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -538,10 +669,7 @@ class _HomeState extends State<Home> {
                   product.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade700,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -579,9 +707,17 @@ class _HomeState extends State<Home> {
                 ),
                 Row(
                   children: [
-                    Icon(Icons.favorite_border, size: 20, color: Colors.grey.shade600),
+                    Icon(
+                      Icons.favorite_border,
+                      size: 20,
+                      color: Colors.grey.shade600,
+                    ),
                     const SizedBox(width: 8),
-                    Icon(Icons.shopping_cart_outlined, size: 20, color: Colors.grey.shade600),
+                    Icon(
+                      Icons.shopping_cart_outlined,
+                      size: 20,
+                      color: Colors.grey.shade600,
+                    ),
                   ],
                 ),
               ],
@@ -643,10 +779,7 @@ class _HomeState extends State<Home> {
           if (isSelected) ...[
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 11),
             ),
           ],
         ],

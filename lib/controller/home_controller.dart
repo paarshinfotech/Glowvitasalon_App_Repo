@@ -3,7 +3,10 @@ import 'package:glow_vita_salon/model/category.dart';
 import '../model/offers.dart';
 import '../model/product.dart';
 import '../model/salon.dart';
+
 import '../services/api_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class HomeController extends ChangeNotifier {
   String location = "Fetching location..."; // Default or loading state
@@ -35,6 +38,7 @@ class HomeController extends ChangeNotifier {
 
   HomeController() {
     _fetchData();
+    _getUserLocation();
   }
 
   void _fetchData() async {
@@ -43,8 +47,12 @@ class HomeController extends ChangeNotifier {
       notifyListeners();
 
       print('Fetching data from API...');
-      final vendors = await ApiService.getVendors();
-      final productsData = await ApiService.getProducts();
+      print('Fetching data from API...');
+      final vendorsFuture = ApiService.getVendors();
+      final productsFuture = ApiService.getProducts();
+
+      final vendors = await vendorsFuture;
+      final productsData = await productsFuture;
 
       final salons = vendors.map((vendor) => Salon.fromVendor(vendor)).toList();
 
@@ -70,6 +78,57 @@ class HomeController extends ChangeNotifier {
       products = [];
     } finally {
       isLoading = false;
+      notifyListeners();
+    }
+  }
+  Future<void> _getUserLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        location = "Location disabled";
+        notifyListeners();
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          location = "Location denied";
+          notifyListeners();
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        location = "Location permanently denied";
+        notifyListeners();
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(position.latitude, position.longitude);
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        String newLocation = [
+          place.subLocality,
+          place.locality,
+          place.administrativeArea
+        ].where((e) => e != null && e.isNotEmpty).join(', ');
+
+        if (newLocation.isEmpty) {
+          newLocation = "Unknown Location";
+        }
+        updateLocation(newLocation);
+      }
+    } catch (e) {
+      debugPrint("Error getting location: $e");
+      location = "Failed to get location";
       notifyListeners();
     }
   }

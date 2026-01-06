@@ -12,43 +12,49 @@ class SalonListScreen extends StatelessWidget {
       create: (_) => SalonListController(),
       child: Consumer<SalonListController>(
         builder: (context, controller, child) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSearchBar(context, controller),
+          return Scaffold(
+            body: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSearchBar(context, controller),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  '${controller.filteredSalons.length} Salons Found',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                ),
-              ),
-
-              if (controller.isLoading)
-                const Expanded(
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else
-                Expanded(
-                  child: GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.6,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
-                    itemCount: controller.filteredSalons.length,
-                    itemBuilder: (context, index) {
-                      final salon = controller.filteredSalons[index];
-                      return _buildSalonCard(salon);
-                    },
+                    child: Text(
+                      '${controller.filteredSalons.length} Salons Found',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    ),
                   ),
-                ),
-            ],
+
+                  if (controller.isLoading)
+                    const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else
+                    Expanded(
+                      child: GridView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 0.6,
+                            ),
+                        itemCount: controller.filteredSalons.length,
+                        itemBuilder: (context, index) {
+                          final salon = controller.filteredSalons[index];
+                          return _buildSalonCard(salon);
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
           );
         },
       ),
@@ -107,7 +113,7 @@ class SalonListScreen extends StatelessWidget {
                     child: CircularProgressIndicator(
                       value: loadingProgress.expectedTotalBytes != null
                           ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
+                                loadingProgress.expectedTotalBytes!
                           : null,
                     ),
                   ),
@@ -131,7 +137,12 @@ class SalonListScreen extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(top: 12, bottom: 8, left: 12, right: 12),
+            padding: const EdgeInsets.only(
+              top: 12,
+              bottom: 8,
+              left: 12,
+              right: 12,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -139,14 +150,24 @@ class SalonListScreen extends StatelessWidget {
                   salon.name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(salon.salonType, style: TextStyle(color: Colors.grey[600], fontSize: 11)),
+                Text(
+                  salon.salonType,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.location_on, size: 12, color: Colors.red.shade400),
+                    Icon(
+                      Icons.location_on,
+                      size: 12,
+                      color: Colors.red.shade400,
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(

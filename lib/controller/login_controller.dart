@@ -64,10 +64,12 @@ class LoginController {
       }
       // -----------------------------------------
 
-      if (result['success'] == true) {
+      // Some APIs might not return success: true but just the token
+      if (result['success'] == true || (result['token'] != null && result['token'].toString().isNotEmpty)) {
         final token = result['token'] as String? ?? '';
-        final firstName = result['firstName'] as String? ?? '';
-        final lastName = result['lastName'] as String? ?? '';
+        final user = result['user'] as Map<String, dynamic>? ?? {};
+        final firstName = user['firstName'] as String? ?? '';
+        final lastName = user['lastName'] as String? ?? '';
         await AuthController.saveLogin(token, firstName, lastName);
 
         isLoading = false;

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import '../model/salon.dart';
-import '../view/appointments_screen.dart';
 import '../view/home.dart';
 import '../view/login_screen.dart';
 import '../view/map_picker_screen.dart';
 import '../view/notification_screen.dart';
 import '../view/register_screen.dart';
-import '../view/salon_list_screen.dart';
 import '../view/salondetails_screen.dart';
 import '../view/booking_screen.dart';
 import '../view/product_details_screen.dart';
@@ -26,8 +24,6 @@ class AppRoutes {
   static const String notification = '/notification';
   static const String salonList = '/salonList';
 
-
-
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case home:
@@ -37,21 +33,22 @@ class AppRoutes {
       case register:
         return MaterialPageRoute(builder: (_) => const RegisterScreen());
       case mappicker:
-          return MaterialPageRoute(builder: (_) => const MapPickerScreen());
+        return MaterialPageRoute(builder: (_) => const MapPickerScreen());
       case products:
-          return MaterialPageRoute(builder: (_) => const ProductPage());
+        return MaterialPageRoute(builder: (_) => const ProductPage());
       case appointment:
-          return MaterialPageRoute(builder: (_) => const AppointmentsScreen());
+        return MaterialPageRoute(builder: (_) => const Home(initialIndex: 2));
       case salonList:
-          return MaterialPageRoute(builder: (_) => const SalonListScreen());
+        return MaterialPageRoute(builder: (_) => const Home(initialIndex: 1));
       case notification:
-          return MaterialPageRoute(builder: (_) => const NotificationScreen());
+        return MaterialPageRoute(builder: (_) => const NotificationScreen());
 
       case salonDetails:
         if (settings.arguments is Salon) {
           final salon = settings.arguments as Salon;
           return MaterialPageRoute(
-              builder: (_) => SalonDetailsScreen(salon: salon));
+            builder: (_) => SalonDetailsScreen(salon: salon),
+          );
         }
         if (settings.arguments is Map<String, dynamic>) {
           final args = settings.arguments as Map<String, dynamic>;
@@ -59,8 +56,11 @@ class AppRoutes {
           if (salon != null) {
             final scrollToProducts = args['scrollToProducts'] as bool? ?? false;
             return MaterialPageRoute(
-                builder: (_) => SalonDetailsScreen(
-                    salon: salon, scrollToProducts: scrollToProducts));
+              builder: (_) => SalonDetailsScreen(
+                salon: salon,
+                scrollToProducts: scrollToProducts,
+              ),
+            );
           }
         }
         return _errorRoute();
@@ -69,8 +69,12 @@ class AppRoutes {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
             builder: (_) => BookingScreen(
-              selectedServices: List<String>.from(args['selectedServices'] as List),
-              selectedStaff: Map<String, String>.from(args['selectedStaff'] as Map),
+              selectedServices: List<String>.from(
+                args['selectedServices'] as List,
+              ),
+              selectedStaff: Map<String, String>.from(
+                args['selectedStaff'] as Map,
+              ),
               selectedDate: args['selectedDate'] as DateTime,
               selectedTime: args['selectedTime'] as String,
               totalAmount: args['totalAmount'] as double,
@@ -82,7 +86,8 @@ class AppRoutes {
         if (settings.arguments is Product) {
           final product = settings.arguments as Product;
           return MaterialPageRoute(
-              builder: (_) => ProductDetailsScreen(product: product));
+            builder: (_) => ProductDetailsScreen(product: product),
+          );
         }
         return _errorRoute();
       default:
@@ -91,15 +96,13 @@ class AppRoutes {
   }
 
   static Route<dynamic> _errorRoute() {
-    return MaterialPageRoute(builder: (_) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Error'),
-        ),
-        body: const Center(
-          child: Text('Page not found'),
-        ),
-      );
-    });
+    return MaterialPageRoute(
+      builder: (_) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Error')),
+          body: const Center(child: Text('Page not found')),
+        );
+      },
+    );
   }
 }

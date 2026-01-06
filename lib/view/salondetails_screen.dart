@@ -9,7 +9,10 @@ import 'package:glow_vita_salon/widget/service_card.dart';
 import 'package:glow_vita_salon/widget/specialist_avatar.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-  
+
+import 'package:glow_vita_salon/model/wedding_package.dart';
+
+import 'package:glow_vita_salon/view/home.dart';
 import '../model/product.dart';
 import '../model/feedback.dart';
 
@@ -34,9 +37,15 @@ class SalonDetailsScreen extends StatelessWidget {
             body: CustomScrollView(
               slivers: [
                 _buildImageCarousel(context, controller),
-                SliverToBoxAdapter(child: _buildActionsSection(context, controller)),
-                const SliverToBoxAdapter(child: Divider(thickness: 1, height: 1)),
-                SliverToBoxAdapter(child: _buildOffersSection(context, controller)),
+                SliverToBoxAdapter(
+                  child: _buildActionsSection(context, controller),
+                ),
+                const SliverToBoxAdapter(
+                  child: Divider(thickness: 1, height: 1),
+                ),
+                SliverToBoxAdapter(
+                  child: _buildOffersSection(context, controller),
+                ),
                 if (controller.currentState == SalonDetailsState.services)
                   ..._buildServicesContent(context, controller)
                 else if (controller.currentState == SalonDetailsState.staff)
@@ -45,10 +54,16 @@ class SalonDetailsScreen extends StatelessWidget {
                   _buildDateTimeSelectionList(context, controller),
                 if (controller.currentState != SalonDetailsState.dateTime) ...[
                   _buildSpecialistsSection(context, controller),
-                  SliverToBoxAdapter(child: _buildProductSection(context, controller)),
+                  SliverToBoxAdapter(
+                    child: _buildProductSection(context, controller),
+                  ),
                 ],
-                SliverToBoxAdapter(child: _buildAboutUsSection(context, controller)),
-                SliverToBoxAdapter(child: _buildClientFeedbackSection(context, controller)),
+                SliverToBoxAdapter(
+                  child: _buildAboutUsSection(context, controller),
+                ),
+                SliverToBoxAdapter(
+                  child: _buildClientFeedbackSection(context, controller),
+                ),
               ],
             ),
             bottomNavigationBar: _buildBottomAppBar(context, controller),
@@ -58,11 +73,14 @@ class SalonDetailsScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildServicesContent(BuildContext context, SalonDetailsController controller) {
+  List<Widget> _buildServicesContent(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     if (controller.serviceType == ServiceType.wedding) {
       return [
-         SliverToBoxAdapter(child: _buildServicesSection(context, controller)),
-         _buildWeddingPackagesList(context, controller),
+        SliverToBoxAdapter(child: _buildServicesSection(context, controller)),
+        _buildWeddingPackagesList(context, controller),
       ];
     }
 
@@ -72,84 +90,216 @@ class SalonDetailsScreen extends StatelessWidget {
     ];
   }
 
-  Widget _buildWeddingPackagesList(BuildContext context, SalonDetailsController controller) {
-     return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final package = controller.allWeddingPackages[index];
-          final isSelected = controller.selectedPackage == package;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: GestureDetector(
-              onTap: () {
-                 controller.selectPackage(package);
-                 _showCustomizePackageModal(context, controller);
-              },
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: isSelected ? const BorderSide(color: Color(0xFF4A2C3F), width: 2) : BorderSide.none,
+  Widget _buildWeddingPackagesList(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final package = controller.allWeddingPackages[index];
+        final isSelected = controller.selectedPackages.contains(package);
+
+        // Calculate price dynamically if this package is selected
+        double displayPrice = package.price;
+        if (isSelected) {
+          final selectedServicesForPackage = controller.services
+              .where((s) => controller.isServiceSelectedForPackage(package, s))
+              .toList();
+          if (selectedServicesForPackage.isNotEmpty) {
+            displayPrice = selectedServicesForPackage.fold<double>(
+              0,
+              (sum, s) => sum + s.price,
+            );
+          }
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: GestureDetector(
+            onTap: () {
+              _showCustomizePackageModal(context, controller, package);
+            },
+            child: Container(
+              height: 120, // Strict height constraint
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFF4A2C3F)
+                      : Colors.grey.shade300,
+                  width: isSelected ? 2 : 1,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (package.imageUrl != null)
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                        child: Image.network(package.imageUrl!, height: 150, width: double.infinity, fit: BoxFit.cover),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  // Image Section - Left Side
+                  if (package.imageUrl != null)
+                    ClipRRect(
+                      borderRadius: const BorderRadius.horizontal(
+                        left: Radius.circular(12),
                       ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
+                      child: Image.network(
+                        package.imageUrl!,
+                        width: 100,
+                        height: 120,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+
+                  // Content Section - Right Side
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment
+                            .spaceBetween, // Distribute vertically
                         children: [
+                          // Header Row: Name + Check
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(package.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                              if (isSelected)
-                                const Icon(Icons.check_circle, color: Color(0xFF4A2C3F)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(package.description, style: TextStyle(color: Colors.grey[600])),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                               Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-                               const SizedBox(width: 4),
-                               Text(package.duration, style: TextStyle(color: Colors.grey[600])),
-                               const Spacer(),
-                               Text('₹${package.price.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF4A2C3F))),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () => controller.selectPackage(package),
-                             style: ElevatedButton.styleFrom(
-                                backgroundColor: isSelected ? Colors.green : const Color(0xFF4A2C3F),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                minimumSize: const Size(double.infinity, 40),
+                              Expanded(
+                                child: Text(
+                                  package.name,
+                                  style: const TextStyle(
+                                    fontSize: 15, // Slightly smaller
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            child: Text(isSelected ? 'Selected' : 'Select Package'),
-                          )
+                              if (isSelected)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 4),
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: Color(0xFF4A2C3F),
+                                    size: 18,
+                                  ),
+                                ),
+                            ],
+                          ),
+
+                          // Middle Row: Price & Duration
+                          Row(
+                            children: [
+                              Text(
+                                '₹${displayPrice.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF4A2C3F),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.access_time,
+                                size: 12,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                package.duration,
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          // Bottom Row: Compact Buttons
+                          Row(
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 32, // Minimal button height
+                                  child: OutlinedButton(
+                                    onPressed: () {
+                                      _showCustomizePackageModal(
+                                        context,
+                                        controller,
+                                        package,
+                                      );
+                                    },
+                                    style: OutlinedButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      side: const BorderSide(
+                                        color: Color(0xFF4A2C3F),
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'View',
+                                      style: TextStyle(
+                                        color: Color(0xFF4A2C3F),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: SizedBox(
+                                  height: 32,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      controller.togglePackage(package);
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      backgroundColor: isSelected
+                                          ? Colors.red.shade400
+                                          : const Color(0xFF4A2C3F),
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      isSelected ? 'Remove' : 'Select',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          );
-        },
-        childCount: controller.allWeddingPackages.length,
-      ),
+          ),
+        );
+      }, childCount: controller.allWeddingPackages.length),
     );
   }
 
-  void _showCustomizePackageModal(BuildContext context, SalonDetailsController controller) {
+  void _showCustomizePackageModal(
+    BuildContext context,
+    SalonDetailsController controller,
+    WeddingPackage package,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -161,354 +311,808 @@ class SalonDetailsScreen extends StatelessWidget {
           minChildSize: 0.5,
           maxChildSize: 0.95,
           builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              Expanded(
-                child: Consumer<SalonDetailsController>(
-                  builder: (context, ctrl, child) {
-                    final package = ctrl.selectedPackage!;
-                    // Calculate price dynamically based on selected services
-                    // The ctrl.totalAmount is for the booking flow (includes person count).
-                    // Here we just want the sum of selected services for 1 person to show in the modal.
-                    final currentPrice = ctrl.selectedServices.fold<double>(0, (sum, service) => sum + service.price);
-                    final originalPrice = package.services.fold<double>(0, (sum, ps) => sum + ps.service.price); // Sum of ALL services if they were individual
-                    // Or maybe just show base package price vs current sum? 
-                    // Let's assume the package.price is the base price. 
-                    // Actually, let's stick to the sum of selected services as the "Final Price".
-                    
-                    return CustomScrollView(
-                      controller: scrollController,
-                      slivers: [
-                        // Header Image & Info
-                        SliverToBoxAdapter(
-                          child: Stack(
-                            children: [
-                              Container(
-                                height: 250,
-                                decoration: BoxDecoration(
-                                  image: DecorationImage(
-                                    image: NetworkImage(package.imageUrl ?? 'https://via.placeholder.com/400'),
-                                    fit: BoxFit.cover,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                Expanded(
+                  child: Consumer<SalonDetailsController>(
+                    builder: (context, ctrl, child) {
+                      // Calculate price dynamically for THIS package
+                      final selectedServicesForPackage = ctrl.services
+                          .where(
+                            (s) => ctrl.isServiceSelectedForPackage(package, s),
+                          )
+                          .toList();
+
+                      final currentPrice = selectedServicesForPackage
+                          .fold<double>(
+                            0,
+                            (sum, service) => sum + service.price,
+                          );
+
+                      return CustomScrollView(
+                        controller: scrollController,
+                        slivers: [
+                          // Header Image & Info
+                          SliverToBoxAdapter(
+                            child: Stack(
+                              children: [
+                                Container(
+                                  height: 250,
+                                  decoration: BoxDecoration(
+                                    image: DecorationImage(
+                                      image: NetworkImage(
+                                        package.imageUrl ??
+                                            'https://via.placeholder.com/400',
+                                      ),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  height: 250,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withOpacity(0.8),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 16,
+                                  left: 16,
+                                  right: 16,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              package.name,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          Text(
+                                            '₹${currentPrice.toStringAsFixed(0)}/-',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          _buildHeaderChip(
+                                            Icons.list,
+                                            '${selectedServicesForPackage.length} Services',
+                                          ),
+                                          const SizedBox(width: 8),
+                                          _buildHeaderChip(
+                                            Icons.access_time,
+                                            package.duration,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          _buildHeaderChip(
+                                            Icons.people,
+                                            '2 Staff',
+                                          ), // Placeholder/Static for now as per design
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 16,
+                                  right: 16,
+                                  child: CircleAvatar(
+                                    backgroundColor: Colors.black26,
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                      ),
+                                      onPressed: () => Navigator.pop(context),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                package.description,
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                          // Included Services
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red[50],
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.list,
+                                      color: Colors.red,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    'Included Services',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  IconButton(
+                                    onPressed: () => _showEditServicesDialog(
+                                      context,
+                                      ctrl,
+                                      package,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.edit_square,
+                                      color: Color(0xFF4A2C3F),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                            ),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate((
+                                context,
+                                index,
+                              ) {
+                                final packageService = package.services[index];
+                                final isSelected = ctrl
+                                    .isServiceSelectedForPackage(
+                                      package,
+                                      packageService.service,
+                                    );
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? const Color(0xFF4A2C3F)
+                                            : Colors.grey.shade200,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.grey.withOpacity(0.05),
+                                          spreadRadius: 1,
+                                          blurRadius: 5,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: packageService.isLocked
+                                            ? null
+                                            : () => ctrl
+                                                  .togglePackageServiceForPackage(
+                                                    package,
+                                                    packageService,
+                                                  ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12),
+                                          child: Row(
+                                            children: [
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                child: Image.network(
+                                                  packageService
+                                                          .service
+                                                          .imageUrl ??
+                                                      'https://via.placeholder.com/60',
+                                                  width: 60,
+                                                  height: 60,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder:
+                                                      (
+                                                        context,
+                                                        error,
+                                                        stackTrace,
+                                                      ) => Container(
+                                                        width: 60,
+                                                        height: 60,
+                                                        color: Colors.grey[200],
+                                                        child: Icon(
+                                                          Icons.spa,
+                                                          color:
+                                                              Colors.grey[400],
+                                                        ),
+                                                      ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      packageService
+                                                          .service
+                                                          .name,
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      '${packageService.service.duration} • ₹${packageService.service.price.toStringAsFixed(0)}',
+                                                      style: TextStyle(
+                                                        color: Colors.grey[600],
+                                                        fontSize: 13,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              if (!packageService.isLocked)
+                                                Transform.scale(
+                                                  scale: 1.1,
+                                                  child: Checkbox(
+                                                    value: isSelected,
+                                                    activeColor: const Color(
+                                                      0xFF4A2C3F,
+                                                    ),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            4,
+                                                          ),
+                                                    ),
+                                                    onChanged: (val) => ctrl
+                                                        .togglePackageService(
+                                                          packageService,
+                                                        ),
+                                                  ),
+                                                )
+                                              else
+                                                const Padding(
+                                                  padding: EdgeInsets.all(12.0),
+                                                  child: Icon(
+                                                    Icons.lock_outline,
+                                                    color: Colors.grey,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }, childCount: package.services.length),
+                            ),
+                          ),
+
+                          // Additional Services Section (if any)
+                          if (ctrl.services.any(
+                            (s) =>
+                                ctrl.isServiceSelectedForPackage(package, s) &&
+                                !package.services.any((ps) => ps.service == s),
+                          )) ...[
+                            const SliverToBoxAdapter(
+                              child: SizedBox(height: 12),
+                            ),
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                ),
+                                child: Text(
+                                  'Additional Services',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[800],
                                   ),
                                 ),
                               ),
-                              Container(
-                                height: 250,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-                                  ),
+                            ),
+                            const SliverToBoxAdapter(
+                              child: SizedBox(height: 8),
+                            ),
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                              ),
+                              sliver: SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final extraServices = ctrl.services
+                                        .where(
+                                          (s) =>
+                                              ctrl.isServiceSelectedForPackage(
+                                                package,
+                                                s,
+                                              ) &&
+                                              !package.services.any(
+                                                (ps) => ps.service == s,
+                                              ),
+                                        )
+                                        .toList();
+                                    final service = extraServices[index];
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 12,
+                                      ),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.grey.shade200,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.grey.withOpacity(
+                                                0.05,
+                                              ),
+                                              spreadRadius: 1,
+                                              blurRadius: 5,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12),
+                                          child: Row(
+                                            children: [
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                child: Image.network(
+                                                  service.imageUrl ??
+                                                      'https://via.placeholder.com/60',
+                                                  width: 60,
+                                                  height: 60,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder:
+                                                      (
+                                                        context,
+                                                        error,
+                                                        stackTrace,
+                                                      ) => Container(
+                                                        width: 60,
+                                                        height: 60,
+                                                        color: Colors.grey[200],
+                                                        child: Icon(
+                                                          Icons.spa,
+                                                          color:
+                                                              Colors.grey[400],
+                                                        ),
+                                                      ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      service.name,
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      '${service.duration} • ₹${service.price.toStringAsFixed(0)}',
+                                                      style: TextStyle(
+                                                        color: Colors.grey[600],
+                                                        fontSize: 13,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Container(
+                                                padding: const EdgeInsets.all(
+                                                  8,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFF4A2C3F,
+                                                  ),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.check,
+                                                  color: Colors.white,
+                                                  size: 16,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  childCount: ctrl.services
+                                      .where(
+                                        (s) =>
+                                            ctrl.isServiceSelectedForPackage(
+                                              package,
+                                              s,
+                                            ) &&
+                                            !package.services.any(
+                                              (ps) => ps.service == s,
+                                            ),
+                                      )
+                                      .length,
                                 ),
                               ),
-                              Positioned(
-                                bottom: 16,
-                                left: 16,
-                                right: 16,
+                            ),
+                          ],
+                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                          // Expert Staff Members
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.purple[50],
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.people,
+                                          color: Colors.purple,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      const Text(
+                                        'Expert Staff Members',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    height: 130,
+                                    child: ListView.builder(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: ctrl.specialists.length,
+                                      itemBuilder: (context, index) {
+                                        final specialist =
+                                            ctrl.specialists[index];
+                                        return Container(
+                                          margin: const EdgeInsets.only(
+                                            right: 16,
+                                          ),
+                                          child: Column(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(
+                                                  2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: const Color(
+                                                      0xFF4A2C3F,
+                                                    ),
+                                                    width: 2,
+                                                  ),
+                                                ),
+                                                child: CircleAvatar(
+                                                  radius: 32,
+                                                  backgroundImage: NetworkImage(
+                                                    specialist.imageUrl,
+                                                  ),
+                                                  onBackgroundImageError:
+                                                      (_, __) {},
+                                                  child:
+                                                      specialist
+                                                          .imageUrl
+                                                          .isEmpty
+                                                      ? const Icon(Icons.person)
+                                                      : null,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                specialist.name,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                              Text(
+                                                'Expert',
+                                                style: TextStyle(
+                                                  color: Colors.grey[600],
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+                          // Pricing Card
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF0F5),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: Colors.red.withOpacity(0.2),
+                                  ),
+                                ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                    const Row(
                                       children: [
-                                        Expanded(
-                                          child: Text(
-                                            package.name,
-                                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                                        Text(
+                                          '💰',
+                                          style: TextStyle(fontSize: 20),
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Package Pricing',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 24),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Original Price:',
+                                          style: TextStyle(
+                                            color: Colors.grey[700],
+                                            fontSize: 16,
                                           ),
                                         ),
                                         Text(
-                                          '₹${currentPrice.toStringAsFixed(0)}/-',
-                                          style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                                          '₹${(currentPrice * 1.2).toStringAsFixed(0)}', // Dummy markdown for visuals
+                                          style: TextStyle(
+                                            color: Colors.grey[500],
+                                            fontSize: 16,
+                                            decoration:
+                                                TextDecoration.lineThrough,
+                                          ),
                                         ),
                                       ],
                                     ),
                                     const SizedBox(height: 12),
                                     Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        _buildHeaderChip(Icons.list, '${ctrl.selectedServices.length} Services'),
-                                        const SizedBox(width: 8),
-                                        _buildHeaderChip(Icons.access_time, package.duration),
-                                        const SizedBox(width: 8),
-                                        _buildHeaderChip(Icons.people, '2 Staff'), // Placeholder/Static for now as per design
+                                        Text(
+                                          'You Save:',
+                                          style: TextStyle(
+                                            color: Colors.grey[700],
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green[100],
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            '20% OFF',
+                                            style: TextStyle(
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                      child: Divider(color: Colors.redAccent),
+                                    ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text(
+                                          'Final Price:',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          '₹${currentPrice.toStringAsFixed(0)}',
+                                          style: const TextStyle(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.redAccent,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ],
                                 ),
                               ),
-                              Positioned(
-                                top: 16,
-                                right: 16,
-                                child: CircleAvatar(
-                                  backgroundColor: Colors.black26,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.close, color: Colors.white),
-                                    onPressed: () => Navigator.pop(context),
-                                  ),
+                            ),
+                          ),
+                          const SliverToBoxAdapter(child: SizedBox(height: 30)),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                // Bottom Buttons
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: BorderSide(color: Colors.grey.shade300),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Close',
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (!controller.selectedPackages.contains(
+                              package,
+                            )) {
+                              controller.togglePackage(package);
+                            }
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(
+                              0xFFE91E63,
+                            ), // Pinkish Red
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.favorite_border,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Select Package',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Text(
-                              package.description,
-                              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                            ),
-                          ),
-                        ),
-                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                        // Included Services
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(color: Colors.red[50], shape: BoxShape.circle),
-                                  child: const Icon(Icons.list, color: Colors.red, size: 20),
-                                ),
-                                const SizedBox(width: 12),
-                                const Text('Included Services', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                        
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final packageService = package.services[index];
-                                final isSelected = ctrl.selectedServices.contains(packageService.service);
-                                
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: InkWell(
-                                    onTap: packageService.isLocked ? null : () => ctrl.togglePackageService(packageService),
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFFF0F5), // Light Pinkish background
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Colors.red.withOpacity(0.1)),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            decoration: const BoxDecoration(
-                                              color: Colors.red, // Design uses filled circle check
-                                              shape: BoxShape.circle,
-                                            ),
-                                            padding: const EdgeInsets.all(4),
-                                            child: const Icon(Icons.check, color: Colors.white, size: 12),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Text(packageService.service.name, style: const TextStyle(fontWeight: FontWeight.w500)),
-                                          ),
-                                          if (!packageService.isLocked)
-                                            Checkbox(
-                                              value: isSelected, 
-                                              activeColor: Colors.red,
-                                              onChanged: (val) => ctrl.togglePackageService(packageService)
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                              childCount: package.services.length,
-                            ),
-                          ),
-                        ),
-                         const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                        // Expert Staff Members
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(color: Colors.purple[50], shape: BoxShape.circle),
-                                      child: const Icon(Icons.people, color: Colors.purple, size: 20),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    const Text('Expert Staff Members', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                SizedBox(
-                                  height: 80,
-                                  child: ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: 3, // Dummy count for UI
-                                    itemBuilder: (context, index) {
-                                       // Dummy avatars
-                                       return Container(
-                                         margin: const EdgeInsets.only(right: 12),
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.deepPurple.withOpacity(0.05),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: Colors.deepPurple.withOpacity(0.1)),
-                                          ),
-                                         child: Row(
-                                           children: [
-                                             const CircleAvatar(
-                                                backgroundColor: Colors.deepPurpleAccent,
-                                                child: Icon(Icons.person, color: Colors.white),
-                                             ),
-                                             const SizedBox(width: 12),
-                                             Text(
-                                               'Staff ${index+1}', 
-                                               style: const TextStyle(fontWeight: FontWeight.bold),
-                                             ),
-                                           ],
-                                         ),
-                                       );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-                        // Pricing Card
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFF0F5),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.red.withOpacity(0.2)),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                   const Row(
-                                     children: [
-                                        Text('💰', style: TextStyle(fontSize: 20)),
-                                        SizedBox(width: 8),
-                                        Text('Package Pricing', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                     ],
-                                   ),
-                                   const SizedBox(height: 24),
-                                   Row(
-                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                     children: [
-                                       Text('Original Price:', style: TextStyle(color: Colors.grey[700], fontSize: 16)),
-                                       Text(
-                                          '₹${(currentPrice * 1.2).toStringAsFixed(0)}', // Dummy markdown for visuals
-                                          style: TextStyle(
-                                            color: Colors.grey[500], 
-                                            fontSize: 16, 
-                                            decoration: TextDecoration.lineThrough
-                                          ),
-                                       ),
-                                     ],
-                                   ),
-                                   const SizedBox(height: 12),
-                                   Row(
-                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                     children: [
-                                       Text('You Save:', style: TextStyle(color: Colors.grey[700], fontSize: 16)),
-                                       Container(
-                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                         decoration: BoxDecoration(color: Colors.green[100], borderRadius: BorderRadius.circular(4)),
-                                         child: const Text('20% OFF', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
-                                       ),
-                                     ],
-                                   ),
-                                    const Padding(
-                                      padding: EdgeInsets.symmetric(vertical: 16),
-                                      child: Divider(color: Colors.redAccent),
-                                    ),
-                                    Row(
-                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                     children: [
-                                       const Text('Final Price:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                       Text('₹${currentPrice.toStringAsFixed(0)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.redAccent)),
-                                     ],
-                                   ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SliverToBoxAdapter(child: SizedBox(height: 30)),
-                      ],
-                    );
-                  }
-                ),
-              ),
-              // Bottom Buttons
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                           padding: const EdgeInsets.symmetric(vertical: 16),
-                           side: BorderSide(color: Colors.grey.shade300),
-                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        child: const Text('Close', style: TextStyle(color: Colors.black)),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                         style: ElevatedButton.styleFrom(
-                           backgroundColor: const Color(0xFFE91E63), // Pinkish Red
-                           padding: const EdgeInsets.symmetric(vertical: 16),
-                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                             Icon(Icons.favorite_border, color: Colors.white, size: 20),
-                             SizedBox(width: 8),
-                             Text('Select Package', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -525,87 +1129,121 @@ class SalonDetailsScreen extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: Colors.black),
           const SizedBox(width: 4),
-          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
   }
 
-
-  Widget _buildBottomAppBar(BuildContext context, SalonDetailsController controller) {
-    
-    // Only show total price if we have selected something or if we are in package mode
-    
-    double price = 0.0;
-    if (controller.serviceType == ServiceType.wedding && controller.selectedPackage == null) {
-       // Show nothing or 'Select a package'
-       return const SizedBox.shrink();
-    } else {
-       price = controller.totalAmount; 
-       // Note: totalAmount in controller is now dynamic based on person count
-       // If just services selected (person count 1), it matches.
-       // But wait, totalAmount logic was: subtotal + fees + gst
-       // The new logic for wedding: subtotal * people.
-       // Let's use controller.totalAmount directly.
-       price = controller.totalAmount;
+  Widget _buildBottomAppBar(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
+    // Only show total price if we have selected something
+    if (controller.totalAmount == 0) {
+      return const SizedBox.shrink();
     }
-    
+
+    double price = 0.0;
+    if (controller.serviceType == ServiceType.wedding &&
+        controller.selectedPackage == null) {
+      // Show nothing or 'Select a package'
+      return const SizedBox.shrink();
+    } else {
+      // User request: Show ONLY service price in bottom bar (no fees/GST).
+      // Fees/GST should only appear in Booking Details.
+      if (controller.serviceType == ServiceType.individual) {
+        price = controller.subtotal;
+      } else {
+        price = controller.totalAmount;
+      }
+    }
+
     // Override price display for Package selection step (before Person count)
     // Actually, let's keep it simple. If package selected, show price for 1 person until updated.
-    
+
     Column priceWidget(String title) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(title, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 4),
-            Text(
-              '₹ ${price.toStringAsFixed(2)}/-',
-              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ],
-        );
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Hidden label as per request "only show price"
+        // Text(title, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+        // const SizedBox(height: 4),
+        Text(
+          '₹ ${price.toStringAsFixed(2)}/-',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
 
     return Container(
       height: 80,
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
       decoration: const BoxDecoration(
         color: Color(0xFF4A2C3F),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, -2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: controller.currentState == SalonDetailsState.dateTime
             ? _buildDateTimeNavBar(context, controller, priceWidget('Total'))
             : controller.currentState == SalonDetailsState.staff
-                ? _buildStaffNavBar(context, controller, priceWidget('Total'))
-                : _buildServiceNavBar(context, controller, priceWidget('Total Price')),
+            ? _buildStaffNavBar(context, controller, priceWidget('Total'))
+            : _buildServiceNavBar(
+                context,
+                controller,
+                priceWidget('Total Price'),
+              ),
       ),
     );
   }
 
-  List<Widget> _buildServiceNavBar(BuildContext context, SalonDetailsController controller, Widget priceWidget) {
+  List<Widget> _buildServiceNavBar(
+    BuildContext context,
+    SalonDetailsController controller,
+    Widget priceWidget,
+  ) {
     // If Wedding Package Mode
     if (controller.serviceType == ServiceType.wedding) {
-         if (controller.selectedPackage != null) {
-            return [
-              priceWidget,
-              ElevatedButton(
-                onPressed: () {
-                   controller.proceedToDateSelectionFromPackage();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF4A2C3F),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                ),
-                child: const Text('Next', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      if (controller.selectedPackages.isNotEmpty) {
+        return [
+          priceWidget,
+          ElevatedButton(
+            onPressed: () {
+              controller.proceedToDateSelectionFromPackage();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF4A2C3F),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-            ];
-         } else {
-           return [const SizedBox.shrink()]; // Show nothing if no package selected (list has its own buttons)
-         }
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+            ),
+            child: const Text(
+              'Next',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ];
+      } else {
+        return [
+          const SizedBox.shrink(),
+        ]; // Show nothing if no package selected (list has its own buttons)
+      }
     }
 
     return [
@@ -616,32 +1254,49 @@ class SalonDetailsScreen extends StatelessWidget {
             controller.proceedToStaffSelection();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Please select a service first.'), backgroundColor: Colors.red),
+              const SnackBar(
+                content: Text('Please select a service first.'),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF4A2C3F),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
         ),
-        child: const Text('Next', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        child: const Text(
+          'Next',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
       ),
     ];
   }
 
-  List<Widget> _buildStaffNavBar(BuildContext context, SalonDetailsController controller, Widget priceWidget) {
+  List<Widget> _buildStaffNavBar(
+    BuildContext context,
+    SalonDetailsController controller,
+    Widget priceWidget,
+  ) {
     return [
       OutlinedButton(
         onPressed: () => controller.backToServiceSelection(),
         style: OutlinedButton.styleFrom(
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           side: const BorderSide(color: Colors.white),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         ),
-        child: const Text('Back', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        child: const Text(
+          'Back',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
       ),
       priceWidget,
       ElevatedButton(
@@ -650,23 +1305,50 @@ class SalonDetailsScreen extends StatelessWidget {
             controller.proceedToDateTimeSelection();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Please select a staff member first.'), backgroundColor: Colors.red),
+              const SnackBar(
+                content: Text('Please select a staff member first.'),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF4A2C3F),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
-        child: const Text('Continue', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        child: const Text(
+          'Continue',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
       ),
     ];
   }
 
-  List<Widget> _buildDateTimeNavBar(BuildContext context, SalonDetailsController controller, Widget priceWidget) {
+  List<Widget> _buildDateTimeNavBar(
+    BuildContext context,
+    SalonDetailsController controller,
+    Widget priceWidget,
+  ) {
     return [
+      OutlinedButton(
+        onPressed: () => controller.backToStaffSelection(),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          side: const BorderSide(color: Colors.white),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        ),
+        child: const Text(
+          'Back',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+      ),
       priceWidget,
       ElevatedButton(
         onPressed: () {
@@ -674,23 +1356,33 @@ class SalonDetailsScreen extends StatelessWidget {
             _showBookingConfirmation(context, controller);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Please select a time slot.'), backgroundColor: Colors.red),
+              const SnackBar(
+                content: Text('Please select a time slot.'),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF4A2C3F),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
-        child: const Text('Book Now', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        child: const Text(
+          'Book Now',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
       ),
     ];
   }
 
-  void _showBookingConfirmation(BuildContext context, SalonDetailsController controller) {
-
+  void _showBookingConfirmation(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -712,7 +1404,10 @@ class SalonDetailsScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Center(
-                  child: Text('Your Booking Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    'Your Booking Details',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Container(
@@ -723,27 +1418,62 @@ class SalonDetailsScreen extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      if (controller.selectedPackage != null)
-                         _buildDetailRow(Icons.card_giftcard, 'Package', controller.selectedPackage!.name, null),
-                      if(controller.selectedPackage != null)
+                      if (controller.selectedPackages.isNotEmpty)
+                        ...controller.selectedPackages.map(
+                          (p) => _buildDetailRow(
+                            Icons.card_giftcard,
+                            'Package',
+                            p.name,
+                            null,
+                          ),
+                        ),
+                      if (controller.selectedPackages.isNotEmpty)
                         const Divider(height: 24),
-                        
+
                       if (controller.selectedServices.isNotEmpty)
-                          _buildDetailRow(Icons.cut, 'Services', '${controller.selectedServices.length} Selected', controller.selectedServices.map((s) => s.name).take(3).join(', ')),
+                        _buildDetailRow(
+                          Icons.cut,
+                          'Services',
+                          '${controller.selectedServices.length} Selected',
+                          controller.selectedServices
+                              .map((s) => s.name)
+                              .take(3)
+                              .join(', '),
+                        ),
 
                       const Divider(height: 24),
                       if (controller.selectedStaff.isNotEmpty)
-                         _buildDetailRow(Icons.person_outline, 'Staff', controller.selectedStaff.values.first.name, null)
-                      else if(controller.serviceType == ServiceType.wedding)
-                         _buildDetailRow(Icons.people_outline, 'Persons', '${controller.numberOfPeople} People', null),
-                         
+                        _buildDetailRow(
+                          Icons.person_outline,
+                          'Staff',
+                          controller.selectedStaff.values.first.name,
+                          null,
+                        )
+                      else if (controller.serviceType == ServiceType.wedding)
+                        _buildDetailRow(
+                          Icons.people_outline,
+                          'Persons',
+                          '${controller.numberOfPeople} People',
+                          null,
+                        ),
+
                       const Divider(height: 24),
-                      _buildDetailRow(Icons.calendar_today_outlined, 'Date and Time', DateFormat('EEEE, d MMM yyyy').format(controller.selectedDate), controller.selectedTime),
+                      _buildDetailRow(
+                        Icons.calendar_today_outlined,
+                        'Date and Time',
+                        DateFormat(
+                          'EEEE, d MMM yyyy',
+                        ).format(controller.selectedDate),
+                        controller.selectedTime,
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text('Apply Coupon', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Apply Coupon',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -751,8 +1481,12 @@ class SalonDetailsScreen extends StatelessWidget {
                       child: TextField(
                         decoration: InputDecoration(
                           hintText: 'Enter Coupon Code',
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -762,27 +1496,45 @@ class SalonDetailsScreen extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4A2C3F),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
                       ),
                       child: const Text('Apply'),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
-                _buildPriceRow('Subtotal :', '₹ ${controller.subtotal.toStringAsFixed(2)}/-'),
+                _buildPriceRow(
+                  'Subtotal :',
+                  '₹ ${controller.subtotal.toStringAsFixed(2)}/-',
+                ),
                 if (controller.serviceType == ServiceType.wedding)
-                   _buildPriceRow('Person(s) :', 'x ${controller.numberOfPeople}'),
-                   
-                 if (controller.serviceType != ServiceType.wedding) ...[
+                  _buildPriceRow(
+                    'Person(s) :',
+                    'x ${controller.numberOfPeople}',
+                  ),
+
+                if (controller.serviceType != ServiceType.wedding) ...[
                   const SizedBox(height: 8),
-                  _buildPriceRow('Platform Fee :', '₹ ${20.0.toStringAsFixed(2)}/-'),
+                  _buildPriceRow(
+                    'Platform Fee :',
+                    '₹ ${20.0.toStringAsFixed(2)}/-',
+                  ),
                   const SizedBox(height: 8),
                   _buildPriceRow('GST :', '₹ ${2.50.toStringAsFixed(2)}/-'),
-                 ],
-                
+                ],
+
                 const Divider(height: 24, thickness: 1.5),
-                _buildPriceRow('Total Amount :', '₹ ${controller.totalAmount.toStringAsFixed(2)}/-', isTotal: true),
+                _buildPriceRow(
+                  'Total Amount :',
+                  '₹ ${controller.totalAmount.toStringAsFixed(2)}/-',
+                  isTotal: true,
+                ),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () {
@@ -792,10 +1544,15 @@ class SalonDetailsScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4A2C3F),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     minimumSize: const Size(double.infinity, 50),
                   ),
-                  child: const Text('Confirm Booking', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Confirm Booking',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
@@ -805,7 +1562,10 @@ class SalonDetailsScreen extends StatelessWidget {
     );
   }
 
-  void _showPaymentMethod(BuildContext context, SalonDetailsController controller) {
+  void _showPaymentMethod(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -820,9 +1580,18 @@ class SalonDetailsScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Choose Payment Method', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Choose Payment Method',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 16),
-                Text('Total : ₹ ${controller.totalAmount.toStringAsFixed(2)}/-', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  'Total : ₹ ${controller.totalAmount.toStringAsFixed(2)}/-',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 24),
                 _buildPaymentOption(
                   setModalState,
@@ -849,17 +1618,25 @@ class SalonDetailsScreen extends StatelessWidget {
                       _showBookingConfirmedDialog(context, controller);
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please select a payment method.'), backgroundColor: Colors.red),
+                        const SnackBar(
+                          content: Text('Please select a payment method.'),
+                          backgroundColor: Colors.red,
+                        ),
                       );
                     }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4A2C3F),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     minimumSize: const Size(double.infinity, 50),
                   ),
-                  child: const Text('Continue', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Continue',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
@@ -869,13 +1646,18 @@ class SalonDetailsScreen extends StatelessWidget {
     );
   }
 
-  void _showBookingConfirmedDialog(BuildContext context, SalonDetailsController controller) {
+  void _showBookingConfirmedDialog(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
           child: Container(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -895,10 +1677,7 @@ class SalonDetailsScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  '✨',
-                  style: TextStyle(fontSize: 24),
-                ),
+                const Text('✨', style: TextStyle(fontSize: 24)),
                 const SizedBox(height: 16),
                 Text(
                   'Your appointment is confirmed.\nEnjoy a seamless experience and\npay at the salon.',
@@ -908,22 +1687,39 @@ class SalonDetailsScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.of(context).pop();
+                    Navigator.of(context).pop(); // Close dialog
                     controller.reset();
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const Home(initialIndex: 2),
+                      ),
+                      (route) => false,
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4A2C3F),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     minimumSize: const Size(double.infinity, 50),
                   ),
-                  child: const Text('Booking Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'Booking Details',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop();
+                    Navigator.of(context).pop(); // Close dialog
                     controller.reset();
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Home()),
+                      (route) => false,
+                    );
                   },
                   child: Text(
                     'Close',
@@ -938,8 +1734,14 @@ class SalonDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPaymentOption(StateSetter setModalState, SalonDetailsController controller, String title,
-      String subtitle, PaymentMethod value, IconData icon) {
+  Widget _buildPaymentOption(
+    StateSetter setModalState,
+    SalonDetailsController controller,
+    String title,
+    String subtitle,
+    PaymentMethod value,
+    IconData icon,
+  ) {
     final isSelected = controller.paymentMethod == value;
     return GestureDetector(
       onTap: () => setModalState(() => controller.selectPaymentMethod(value)),
@@ -948,19 +1750,34 @@ class SalonDetailsScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? Colors.green.withOpacity(0.1) : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? Colors.green : Colors.grey.shade300),
+          border: Border.all(
+            color: isSelected ? Colors.green : Colors.grey.shade300,
+          ),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 30, color: isSelected ? Colors.green : const Color(0xFF4A2C3F)),
+            Icon(
+              icon,
+              size: 30,
+              color: isSelected ? Colors.green : const Color(0xFF4A2C3F),
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text(subtitle, style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  ),
                 ],
               ),
             ),
@@ -980,23 +1797,42 @@ class SalonDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String title, String value, String? subtitle) {
+  Widget _buildDetailRow(
+    IconData icon,
+    String title,
+    String value,
+    String? subtitle,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(icon, size: 20, color: Colors.grey.shade700),
         const SizedBox(width: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: TextStyle(color: Colors.grey.shade700, fontSize: 14)),
-            const SizedBox(height: 4),
-            Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            if (subtitle != null) ...[
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+              ),
               const SizedBox(height: 4),
-              Text(subtitle, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-            ]
-          ],
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                ),
+              ],
+            ],
+          ),
         ),
       ],
     );
@@ -1006,13 +1842,28 @@ class SalonDetailsScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: TextStyle(fontSize: isTotal ? 18 : 16, fontWeight: isTotal ? FontWeight.bold : FontWeight.normal)),
-        Text(amount, style: TextStyle(fontSize: isTotal ? 18 : 16, fontWeight: isTotal ? FontWeight.bold : FontWeight.normal)),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: isTotal ? 18 : 16,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        Text(
+          amount,
+          style: TextStyle(
+            fontSize: isTotal ? 18 : 16,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
       ],
     );
   }
 
-  SliverToBoxAdapter _buildImageCarousel(BuildContext context, SalonDetailsController controller) {
+  SliverToBoxAdapter _buildImageCarousel(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     return SliverToBoxAdapter(
       child: Stack(
         children: [
@@ -1025,8 +1876,10 @@ class SalonDetailsScreen extends StatelessWidget {
               itemBuilder: (context, index) => Image.network(
                 controller.imageUrls[index],
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    Container(color: Colors.grey[200], child: const Icon(Icons.broken_image, size: 50)),
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.broken_image, size: 50),
+                ),
               ),
             ),
           ),
@@ -1056,7 +1909,10 @@ class SalonDetailsScreen extends StatelessWidget {
                 },
                 child: Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.black.withOpacity(0.4), shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.4),
+                    shape: BoxShape.circle,
+                  ),
                   child: const Icon(Icons.arrow_back, color: Colors.white),
                 ),
               ),
@@ -1072,12 +1928,20 @@ class SalonDetailsScreen extends StatelessWidget {
                 Text(
                   salon.name,
                   style: const TextStyle(
-                      color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, shadows: [Shadow(blurRadius: 10.0, color: Colors.black)]),
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    shadows: [Shadow(blurRadius: 10.0, color: Colors.black)],
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   '${salon.address} • 2.0 Kms',
-                  style: const TextStyle(color: Colors.white, fontSize: 16, shadows: [Shadow(blurRadius: 8.0, color: Colors.black)]),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    shadows: [Shadow(blurRadius: 8.0, color: Colors.black)],
+                  ),
                 ),
               ],
             ),
@@ -1097,7 +1961,9 @@ class SalonDetailsScreen extends StatelessWidget {
                     height: 8,
                     width: controller.currentPage == index ? 24 : 8,
                     decoration: BoxDecoration(
-                      color: controller.currentPage == index ? Colors.white : Colors.white.withOpacity(0.5),
+                      color: controller.currentPage == index
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
@@ -1109,7 +1975,10 @@ class SalonDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionsSection(BuildContext context, SalonDetailsController controller) {
+  Widget _buildActionsSection(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
       child: Row(
@@ -1126,13 +1995,25 @@ class SalonDetailsScreen extends StatelessWidget {
           ),
           OutlinedButton.icon(
             onPressed: () {},
-            icon: const Icon(Icons.star_outline, size: 18, color: Color(0xFF4A2C3F)),
-            label: Text(salon.rating.toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+            icon: const Icon(
+              Icons.star_outline,
+              size: 18,
+              color: Color(0xFF4A2C3F),
+            ),
+            label: Text(
+              salon.rating.toString(),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
             style: OutlinedButton.styleFrom(
               side: BorderSide(color: Colors.grey.shade400),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -1145,13 +2026,19 @@ class SalonDetailsScreen extends StatelessWidget {
         children: [
           Icon(icon, color: Colors.grey.shade800, size: 28),
           const SizedBox(height: 4),
-          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade800)),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildOffersSection(BuildContext context, SalonDetailsController controller) {
+  Widget _buildOffersSection(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24.0),
       child: Column(
@@ -1162,21 +2049,37 @@ class SalonDetailsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Offers for you', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Offers for you',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
-                Container(height: 3, width: 120, color: const Color(0xFF4A2C3F).withOpacity(0.5)),
+                Container(
+                  height: 3,
+                  width: 120,
+                  color: const Color(0xFF4A2C3F).withOpacity(0.5),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          CouponCard(title: 'Layer Cut', discount: '50% Off', validity: '*Valid until December 27, 2025', imageUrl: salon.imageUrl),
+          CouponCard(
+            title: 'Layer Cut',
+            discount: '50% Off',
+            validity: '*Valid until December 27, 2025',
+            imageUrl: salon.imageUrl,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildServicesSection(BuildContext context, SalonDetailsController controller) {
-    bool isIndividualSelected = controller.serviceType == ServiceType.individual;
+  Widget _buildServicesSection(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
+    bool isIndividualSelected =
+        controller.serviceType == ServiceType.individual;
     bool isWeddingSelected = controller.serviceType == ServiceType.wedding;
 
     return Padding(
@@ -1189,9 +2092,16 @@ class SalonDetailsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Select Services', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Select Services',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
-                Container(height: 3, width: 60, color: const Color(0xFF4A2C3F).withOpacity(0.5)),
+                Container(
+                  height: 3,
+                  width: 60,
+                  color: const Color(0xFF4A2C3F).withOpacity(0.5),
+                ),
               ],
             ),
           ),
@@ -1202,26 +2112,60 @@ class SalonDetailsScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => controller.setServiceType(ServiceType.individual),
-                    icon: Icon(Icons.person, color: isIndividualSelected ? Colors.white : Colors.black, size: 20),
-                    label: Text('Individual Services', style: TextStyle(color: isIndividualSelected ? Colors.white : Colors.black)),
+                    onPressed: () =>
+                        controller.setServiceType(ServiceType.individual),
+                    icon: Icon(
+                      Icons.person,
+                      color: isIndividualSelected ? Colors.white : Colors.black,
+                      size: 20,
+                    ),
+                    label: Text(
+                      'Individual Services',
+                      style: TextStyle(
+                        color: isIndividualSelected
+                            ? Colors.white
+                            : Colors.black,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isIndividualSelected ? const Color(0xFF4A2C3F) : Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      side: isIndividualSelected ? null : BorderSide(color: Colors.grey.shade400),
+                      backgroundColor: isIndividualSelected
+                          ? const Color(0xFF4A2C3F)
+                          : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      side: isIndividualSelected
+                          ? null
+                          : BorderSide(color: Colors.grey.shade400),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => controller.setServiceType(ServiceType.wedding),
-                    icon: Icon(Icons.favorite, color: isWeddingSelected ? Colors.white : Colors.black, size: 20),
-                    label: Text('Wedding Packages', style: TextStyle(color: isWeddingSelected ? Colors.white : Colors.black)),
+                    onPressed: () =>
+                        controller.setServiceType(ServiceType.wedding),
+                    icon: Icon(
+                      Icons.favorite,
+                      color: isWeddingSelected ? Colors.white : Colors.black,
+                      size: 20,
+                    ),
+                    label: Text(
+                      'Wedding Packages',
+                      style: TextStyle(
+                        color: isWeddingSelected ? Colors.white : Colors.black,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isWeddingSelected ? const Color(0xFF4A2C3F) : Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      side: isWeddingSelected ? null : BorderSide(color: Colors.grey.shade400),
+                      backgroundColor: isWeddingSelected
+                          ? const Color(0xFF4A2C3F)
+                          : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      side: isWeddingSelected
+                          ? null
+                          : BorderSide(color: Colors.grey.shade400),
                     ),
                   ),
                 ),
@@ -1240,55 +2184,46 @@ class SalonDetailsScreen extends StatelessWidget {
                 itemCount: controller.serviceCategories.length,
                 itemBuilder: (context, index) {
                   final category = controller.serviceCategories[index];
-                  final isSelected = category == controller.selectedServiceCategory;
+                  final isSelected =
+                      category == controller.selectedServiceCategory;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8.0),
                     child: GestureDetector(
                       onTap: () => controller.selectServiceCategory(category),
                       child: Chip(
-                        label: Text(category, style: TextStyle(color: isSelected ? Colors.white : Colors.black87)),
-                        backgroundColor: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade200,
-                        side: BorderSide(color: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade400),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        label: Text(
+                          category,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        backgroundColor: isSelected
+                            ? const Color(0xFF4A2C3F)
+                            : Colors.grey.shade200,
+                        side: BorderSide(
+                          color: isSelected
+                              ? const Color(0xFF4A2C3F)
+                              : Colors.grey.shade400,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   );
                 },
               ),
-            )
-          ] else if (isWeddingSelected) ...[
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 40,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: controller.serviceCategories.length,
-                itemBuilder: (context, index) {
-                  final category = controller.serviceCategories[index];
-                  final isSelected = category == controller.selectedServiceCategory;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: GestureDetector(
-                      onTap: () => controller.selectServiceCategory(category),
-                      child: Chip(
-                        label: Text(category, style: TextStyle(color: isSelected ? Colors.white : Colors.black87)),
-                        backgroundColor: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade200,
-                        side: BorderSide(color: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade400),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            )
-          ]
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildBookingPreferenceSection(BuildContext context, SalonDetailsController controller) {
+  Widget _buildBookingPreferenceSection(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16.0),
       padding: const EdgeInsets.all(16.0),
@@ -1310,7 +2245,11 @@ class SalonDetailsScreen extends StatelessWidget {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.calendar_month, color: Colors.redAccent, size: 24),
+                  child: const Icon(
+                    Icons.calendar_month,
+                    color: Colors.redAccent,
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
@@ -1319,7 +2258,11 @@ class SalonDetailsScreen extends StatelessWidget {
                     children: [
                       Text(
                         'How would you like to book?',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
                       SizedBox(height: 4),
                       Text(
@@ -1339,15 +2282,23 @@ class SalonDetailsScreen extends StatelessWidget {
               _buildBookingTypeButton(
                 title: 'Visit Salon',
                 icon: Icons.content_cut,
-                isSelected: controller.bookingPreference == BookingPreference.visitSalon,
-                onTap: () => controller.setBookingPreference(BookingPreference.visitSalon),
+                isSelected:
+                    controller.bookingPreference ==
+                    BookingPreference.visitSalon,
+                onTap: () => controller.setBookingPreference(
+                  BookingPreference.visitSalon,
+                ),
               ),
               const SizedBox(height: 8),
               _buildBookingTypeButton(
                 title: 'Home Service',
                 icon: Icons.home,
-                isSelected: controller.bookingPreference == BookingPreference.homeService,
-                onTap: () => controller.setBookingPreference(BookingPreference.homeService),
+                isSelected:
+                    controller.bookingPreference ==
+                    BookingPreference.homeService,
+                onTap: () => controller.setBookingPreference(
+                  BookingPreference.homeService,
+                ),
               ),
             ],
           ),
@@ -1370,12 +2321,18 @@ class SalonDetailsScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF4A2C3F) : Colors.white,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade400),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade400,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: isSelected ? Colors.white : Colors.black87),
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? Colors.white : Colors.black87,
+            ),
             const SizedBox(width: 8),
             Text(
               title,
@@ -1391,27 +2348,30 @@ class SalonDetailsScreen extends StatelessWidget {
     );
   }
 
-  SliverList _buildServicesList(BuildContext context, SalonDetailsController controller, List<Service> services) {
+  SliverList _buildServicesList(
+    BuildContext context,
+    SalonDetailsController controller,
+    List<Service> services,
+  ) {
     return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final service = services[index];
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: GestureDetector(
-              onTap: () => controller.toggleService(service),
-              child: ServiceCard(service: service, isSelected: controller.selectedServices.contains(service)),
-            ),
-          );
-        },
-        childCount: services.length,
-      ),
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final service = services[index];
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: ServiceCard(
+            service: service,
+            isSelected: controller.selectedServices.contains(service),
+            onBookTap: () => controller.toggleService(service),
+          ),
+        );
+      }, childCount: services.length),
     );
   }
 
-
-
-  SliverToBoxAdapter _buildSpecialistsSection(BuildContext context, SalonDetailsController controller) {
+  SliverToBoxAdapter _buildSpecialistsSection(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.only(top: 24.0),
@@ -1423,9 +2383,16 @@ class SalonDetailsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Our Skilled Specialists', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Our Skilled Specialists',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 4),
-                  Container(height: 3, width: 100, color: const Color(0xFF4A2C3F).withOpacity(0.5)),
+                  Container(
+                    height: 3,
+                    width: 100,
+                    color: const Color(0xFF4A2C3F).withOpacity(0.5),
+                  ),
                 ],
               ),
             ),
@@ -1438,7 +2405,9 @@ class SalonDetailsScreen extends StatelessWidget {
                 itemCount: controller.specialists.length,
                 itemBuilder: (context, index) => Padding(
                   padding: const EdgeInsets.only(right: 24.0),
-                  child: SpecialistAvatar(specialist: controller.specialists[index]),
+                  child: SpecialistAvatar(
+                    specialist: controller.specialists[index],
+                  ),
                 ),
               ),
             ),
@@ -1448,7 +2417,10 @@ class SalonDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProductSection(BuildContext context, SalonDetailsController controller) {
+  Widget _buildProductSection(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(top: 24.0, bottom: 24.0),
       child: Column(
@@ -1459,9 +2431,16 @@ class SalonDetailsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Products', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Products',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 4),
-                Container(height: 3, width: 60, color: const Color(0xFF4A2C3F).withOpacity(0.5)),
+                Container(
+                  height: 3,
+                  width: 60,
+                  color: const Color(0xFF4A2C3F).withOpacity(0.5),
+                ),
               ],
             ),
           ),
@@ -1483,13 +2462,15 @@ class SalonDetailsScreen extends StatelessWidget {
                     itemCount: products.length,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 14,
-                      childAspectRatio: 0.65,
-                    ),
-                    itemBuilder: (context, index) => ProductCard(product: products[index]),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          childAspectRatio: 0.65,
+                        ),
+                    itemBuilder: (context, index) =>
+                        ProductCard(product: products[index]),
                   ),
                 );
               }
@@ -1500,26 +2481,43 @@ class SalonDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAboutUsSection(BuildContext context, SalonDetailsController controller) {
+  Widget _buildAboutUsSection(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('About Us', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text(
+            'About Us',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 4),
-          Container(height: 3, width: 60, color: const Color(0xFF4A2C3F).withOpacity(0.5)),
+          Container(
+            height: 3,
+            width: 60,
+            color: const Color(0xFF4A2C3F).withOpacity(0.5),
+          ),
           const SizedBox(height: 16),
           Text(
             'Welcome to ${salon.name}, your premier destination for professional grooming services. Our team of skilled professionals is dedicated to providing top-notch beauty and wellness experiences tailored to your needs.',
-            style: TextStyle(fontSize: 14, color: Colors.grey[800], height: 1.5),
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[800],
+              height: 1.5,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildClientFeedbackSection(BuildContext context, SalonDetailsController controller) {
+  Widget _buildClientFeedbackSection(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
       child: Column(
@@ -1528,9 +2526,16 @@ class SalonDetailsScreen extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Client Feedback', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text(
+                'Client Feedback',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 4),
-              Container(height: 3, width: 120, color: const Color(0xFF4A2C3F).withOpacity(0.5)),
+              Container(
+                height: 3,
+                width: 120,
+                color: const Color(0xFF4A2C3F).withOpacity(0.5),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -1539,26 +2544,44 @@ class SalonDetailsScreen extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: controller.feedbackController.feedbacks.length,
             separatorBuilder: (context, index) => const SizedBox(height: 16),
-            itemBuilder: (context, index) => _buildFeedbackCard(context, controller, controller.feedbackController.feedbacks[index]),
+            itemBuilder: (context, index) => _buildFeedbackCard(
+              context,
+              controller,
+              controller.feedbackController.feedbacks[index],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFeedbackCard(BuildContext context, SalonDetailsController controller, Reviews review) {
+  Widget _buildFeedbackCard(
+    BuildContext context,
+    SalonDetailsController controller,
+    Reviews review,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.deepPurple.shade100, width: 1.5),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 2, blurRadius: 5, offset: const Offset(0, 3))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(radius: 28, backgroundImage: NetworkImage(review.imageUrl)),
+          CircleAvatar(
+            radius: 28,
+            backgroundImage: NetworkImage(review.imageUrl),
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -1568,20 +2591,32 @@ class SalonDetailsScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Text(review.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      child: Text(
+                        review.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                     _buildRatingStars(context, controller, review.rating),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Chip(
-                  label: Text(review.date, style: const TextStyle(fontSize: 12)),
+                  label: Text(
+                    review.date,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                   backgroundColor: Colors.grey.shade200,
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   visualDensity: VisualDensity.compact,
                 ),
                 const SizedBox(height: 12),
-                Text(review.comment, style: TextStyle(color: Colors.grey.shade700)),
+                Text(
+                  review.comment,
+                  style: TextStyle(color: Colors.grey.shade700),
+                ),
               ],
             ),
           ),
@@ -1590,18 +2625,29 @@ class SalonDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRatingStars(BuildContext context, SalonDetailsController controller, double rating) {
+  Widget _buildRatingStars(
+    BuildContext context,
+    SalonDetailsController controller,
+    double rating,
+  ) {
     return Row(
       children: List.generate(5, (index) {
         final fullStar = index < rating.floor();
         final halfStar = !fullStar && (rating - index) >= 0.5;
-        final icon = fullStar ? Icons.star : halfStar ? Icons.star_half : Icons.star_border;
+        final icon = fullStar
+            ? Icons.star
+            : halfStar
+            ? Icons.star_half
+            : Icons.star_border;
         return Icon(icon, color: Colors.amber, size: 18);
       }),
     );
   }
 
-  SliverToBoxAdapter _buildStaffSelectionList(BuildContext context, SalonDetailsController controller) {
+  SliverToBoxAdapter _buildStaffSelectionList(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 24.0),
@@ -1613,9 +2659,16 @@ class SalonDetailsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Select Staff', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Select Staff',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 4),
-                  Container(height: 3, width: 60, color: const Color(0xFF4A2C3F).withOpacity(0.5)),
+                  Container(
+                    height: 3,
+                    width: 60,
+                    color: const Color(0xFF4A2C3F).withOpacity(0.5),
+                  ),
                 ],
               ),
             ),
@@ -1627,7 +2680,12 @@ class SalonDetailsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final specialist = controller.specialists[index];
                 final isSelected = controller.isStaffSelected(specialist);
-                return _buildStaffMemberCard(context, controller, specialist, isSelected);
+                return _buildStaffMemberCard(
+                  context,
+                  controller,
+                  specialist,
+                  isSelected,
+                );
               },
             ),
           ],
@@ -1636,7 +2694,10 @@ class SalonDetailsScreen extends StatelessWidget {
     );
   }
 
-  SliverToBoxAdapter _buildDateTimeSelectionList(BuildContext context, SalonDetailsController controller) {
+  SliverToBoxAdapter _buildDateTimeSelectionList(
+    BuildContext context,
+    SalonDetailsController controller,
+  ) {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1647,7 +2708,10 @@ class SalonDetailsScreen extends StatelessWidget {
               children: [
                 Icon(Icons.calendar_today_outlined, size: 18),
                 SizedBox(width: 8),
-                Text('Select Date', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  'Select Date',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -1658,8 +2722,14 @@ class SalonDetailsScreen extends StatelessWidget {
                 itemCount: 30,
                 itemBuilder: (context, index) {
                   final date = DateTime.now().add(Duration(days: index));
-                  final isSelected = controller.selectedDate.day == date.day && controller.selectedDate.month == date.month && controller.selectedDate.year == date.year;
-                  final isToday = DateTime.now().day == date.day && DateTime.now().month == date.month && DateTime.now().year == date.year;
+                  final isSelected =
+                      controller.selectedDate.day == date.day &&
+                      controller.selectedDate.month == date.month &&
+                      controller.selectedDate.year == date.year;
+                  final isToday =
+                      DateTime.now().day == date.day &&
+                      DateTime.now().month == date.month &&
+                      DateTime.now().year == date.year;
 
                   return GestureDetector(
                     onTap: () => controller.selectDate(date),
@@ -1669,7 +2739,11 @@ class SalonDetailsScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: isSelected ? Colors.grey[200] : Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: isSelected ? Colors.grey.shade400 : Colors.grey.shade300),
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade300,
+                        ),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1677,16 +2751,40 @@ class SalonDetailsScreen extends StatelessWidget {
                           if (isToday)
                             Container(
                               margin: const EdgeInsets.only(bottom: 5),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(color: Colors.deepPurpleAccent, borderRadius: BorderRadius.circular(10)),
-                              child: const Text('Today', style: TextStyle(color: Colors.white, fontSize: 10)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.deepPurpleAccent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Text(
+                                'Today',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                ),
+                              ),
                             )
                           else
-                            Text(DateFormat('E').format(date), style: const TextStyle(fontSize: 14)),
+                            Text(
+                              DateFormat('E').format(date),
+                              style: const TextStyle(fontSize: 14),
+                            ),
                           const SizedBox(height: 2),
-                          Text(date.day.toString(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text(
+                            date.day.toString(),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           const SizedBox(height: 2),
-                          Text(DateFormat('MMM').format(date), style: const TextStyle(fontSize: 12)),
+                          Text(
+                            DateFormat('MMM').format(date),
+                            style: const TextStyle(fontSize: 12),
+                          ),
                         ],
                       ),
                     ),
@@ -1699,22 +2797,49 @@ class SalonDetailsScreen extends StatelessWidget {
               children: [
                 Icon(Icons.access_time_outlined, size: 18),
                 SizedBox(width: 8),
-                Text('Select Time', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  'Select Time',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             const SizedBox(height: 24),
-            _buildTimeSlotGroup(context, controller, 'Morning', controller.morningSlots, Colors.amber.shade600),
+            _buildTimeSlotGroup(
+              context,
+              controller,
+              'Morning',
+              controller.morningSlots,
+              Colors.amber.shade600,
+            ),
             const SizedBox(height: 24),
-            _buildTimeSlotGroup(context, controller, 'Afternoon', controller.afternoonSlots, Colors.orange.shade600),
+            _buildTimeSlotGroup(
+              context,
+              controller,
+              'Afternoon',
+              controller.afternoonSlots,
+              Colors.orange.shade600,
+            ),
             const SizedBox(height: 24),
-            _buildTimeSlotGroup(context, controller, 'Evening', controller.eveningSlots, Colors.green.shade600),
+            _buildTimeSlotGroup(
+              context,
+              controller,
+              'Evening',
+              controller.eveningSlots,
+              Colors.green.shade600,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTimeSlotGroup(BuildContext context, SalonDetailsController controller, String title, List<String> slots, Color color) {
+  Widget _buildTimeSlotGroup(
+    BuildContext context,
+    SalonDetailsController controller,
+    String title,
+    List<String> slots,
+    Color color,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1722,7 +2847,10 @@ class SalonDetailsScreen extends StatelessWidget {
           children: [
             CircleAvatar(radius: 5, backgroundColor: color),
             const SizedBox(width: 8),
-            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -1734,7 +2862,9 @@ class SalonDetailsScreen extends StatelessWidget {
             return GestureDetector(
               onTap: () => controller.selectTime(time),
               child: Container(
-                width: (MediaQuery.of(context).size.width - 32 - 24) / 3, // 3 slots per row
+                width:
+                    (MediaQuery.of(context).size.width - 32 - 24) /
+                    3, // 3 slots per row
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
                   color: isSelected ? Colors.grey[300] : Colors.white,
@@ -1742,7 +2872,15 @@ class SalonDetailsScreen extends StatelessWidget {
                   border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: Center(
-                  child: Text(time, style: TextStyle(fontSize: 14, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                  child: Text(
+                    time,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  ),
                 ),
               ),
             );
@@ -1752,7 +2890,12 @@ class SalonDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStaffMemberCard(BuildContext context, SalonDetailsController controller, Specialist specialist, bool isSelected) {
+  Widget _buildStaffMemberCard(
+    BuildContext context,
+    SalonDetailsController controller,
+    Specialist specialist,
+    bool isSelected,
+  ) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
       padding: const EdgeInsets.all(16.0),
@@ -1763,25 +2906,47 @@ class SalonDetailsScreen extends StatelessWidget {
           color: isSelected ? const Color(0xFF4A2C3F) : Colors.grey.shade300,
           width: isSelected ? 2 : 1,
         ),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), spreadRadius: 2, blurRadius: 5, offset: const Offset(0, 3))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 2,
+            blurRadius: 5,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          CircleAvatar(radius: 30, backgroundImage: NetworkImage(specialist.imageUrl)),
+          CircleAvatar(
+            radius: 30,
+            backgroundImage: NetworkImage(specialist.imageUrl),
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(specialist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(
+                  specialist.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
                     const Icon(Icons.star, color: Colors.amber, size: 16),
                     const SizedBox(width: 4),
                     Flexible(
-                      child: Text('4.9 (177 reviews)', overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey.shade600)),
+                      child: Text(
+                        '4.9 (177 reviews)',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
                     ),
                   ],
                 ),
@@ -1793,17 +2958,31 @@ class SalonDetailsScreen extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.watch_later_outlined, color: Colors.grey.shade600, size: 16),
+                        Icon(
+                          Icons.watch_later_outlined,
+                          color: Colors.grey.shade600,
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
-                        Text('10+ Years Exp', style: TextStyle(color: Colors.grey.shade600)),
+                        Text(
+                          '10+ Years Exp',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
                       ],
                     ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.person_outline, color: Colors.grey.shade600, size: 16),
+                        Icon(
+                          Icons.person_outline,
+                          color: Colors.grey.shade600,
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
-                        Text('3k Clients', style: TextStyle(color: Colors.grey.shade600)),
+                        Text(
+                          '3k Clients',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
                       ],
                     ),
                   ],
@@ -1815,11 +2994,19 @@ class SalonDetailsScreen extends StatelessWidget {
           ElevatedButton(
             onPressed: () => controller.selectStaff(specialist),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isSelected ? const Color(0xFF2E7D32) : Colors.white,
-              foregroundColor: isSelected ? Colors.white : const Color(0xFF4A2C3F),
+              backgroundColor: isSelected
+                  ? const Color(0xFF2E7D32)
+                  : Colors.white,
+              foregroundColor: isSelected
+                  ? Colors.white
+                  : const Color(0xFF4A2C3F),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
-                side: BorderSide(color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade400),
+                side: BorderSide(
+                  color: isSelected
+                      ? const Color(0xFF2E7D32)
+                      : Colors.grey.shade400,
+                ),
               ),
               minimumSize: const Size(88, 36),
             ),
@@ -1827,6 +3014,241 @@ class SalonDetailsScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showEditServicesDialog(
+    BuildContext context,
+    SalonDetailsController controller,
+    WeddingPackage package,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Edit Services',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: StatefulBuilder(
+                  builder: (context, setState) {
+                    // We need a local set of selected services to manage state before saving
+                    // But for simplicity, we can clone the list from controller once on init?
+                    // StatefulBuilder doesn't have init.
+                    // Let's assume we read from controller.selectedServices initially, but we don't want to mutate controller yet.
+                    // Actually, modifying a local list variable in the closure should work if we initialize it outside builder?
+                    // No, builder is called every rebuild.
+                    //
+                    // Better approach: Create a separate Widget class or just use a local Variable inside method (but method runs once).
+                    //
+                    // Let's use a local Set initialized outside.
+                    return _EditServicesList(
+                      allServices: controller.services,
+                      initialSelected: Set.from(
+                        controller.services.where(
+                          (s) => controller.isServiceSelectedForPackage(
+                            package,
+                            s,
+                          ),
+                        ),
+                      ),
+                      onSave: (newSelection) {
+                        controller.updateSelectedServicesForPackage(
+                          package,
+                          newSelection,
+                        );
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditServicesList extends StatefulWidget {
+  final List<Service> allServices;
+  final Set<Service> initialSelected;
+  final Function(List<Service>) onSave;
+
+  const _EditServicesList({
+    required this.allServices,
+    required this.initialSelected,
+    required this.onSave,
+  });
+
+  @override
+  State<_EditServicesList> createState() => _EditServicesListState();
+}
+
+class _EditServicesListState extends State<_EditServicesList> {
+  late Set<Service> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.initialSelected;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: widget.allServices.length,
+            separatorBuilder: (context, index) => const Divider(),
+            itemBuilder: (context, index) {
+              final service = widget.allServices[index];
+              final isSelected = _selected.contains(service);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (isSelected) {
+                      _selected.remove(service);
+                    } else {
+                      _selected.add(service);
+                    }
+                  });
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? const Color(0xFF4A2C3F)
+                          : Colors.grey.shade200,
+                      width: isSelected ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            service.imageUrl ??
+                                'https://via.placeholder.com/60',
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  color: Colors.grey[200],
+                                  child: Icon(
+                                    Icons.spa,
+                                    color: Colors.grey[400],
+                                  ),
+                                ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                service.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '₹${service.price.toStringAsFixed(0)} • ${service.duration}',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Transform.scale(
+                          scale: 1.1,
+                          child: Checkbox(
+                            value: isSelected,
+                            activeColor: const Color(0xFF4A2C3F),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            onChanged: (val) {
+                              setState(() {
+                                if (val == true) {
+                                  _selected.add(service);
+                                } else {
+                                  _selected.remove(service);
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ElevatedButton(
+            onPressed: () => widget.onSave(_selected.toList()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4A2C3F),
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Save Changes',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

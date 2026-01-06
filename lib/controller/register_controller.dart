@@ -114,7 +114,7 @@ class RegisterController {
       onStateChanged?.call();
       return result;
     } catch (e) {
-      errorMessage = 'Registration failed: ${e.toString()}';
+      errorMessage = e.toString().replaceAll('Exception: ', '');
       isLoading = false;
       onStateChanged?.call();
       return false;

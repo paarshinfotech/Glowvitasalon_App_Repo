@@ -35,19 +35,39 @@ class ApiService {
   Future<bool> register(RegisterRequest request) async {
     final url = Uri.parse('$baseUrl/api/auth/signup');
 
-    final response = await http.post(
-      url,
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: jsonEncode(request.toJson()),
-    );
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: jsonEncode(request.toJson()),
+      );
 
-    print("REGISTER STATUS CODE: ${response.statusCode}");
-    print("REGISTER RAW RESPONSE: ${response.body}");
+      print("REGISTER STATUS CODE: ${response.statusCode}");
+      print("REGISTER RAW RESPONSE: ${response.body}");
 
-    return response.statusCode == 200 || response.statusCode == 201;
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Check if there is a success flag in the body as well, sometimes APIs return 200 with success: false
+        if (data is Map && data.containsKey('success') && data['success'] == false) {
+           throw Exception(data['message'] ?? 'Registration failed');
+        }
+        return true;
+      } else {
+        // extract error message
+        String msg = 'Registration failed';
+        if (data is Map) {
+           msg = data['message'] ?? data['error'] ?? msg;
+        }
+        throw Exception(msg);
+      }
+    } catch (e) {
+      print('Register Error: $e');
+      rethrow; // Pass it to the controller
+    }
   }
   static Future<List<Product>> getProducts() async {
     final response = await http.get(

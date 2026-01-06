@@ -3,7 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:glow_vita_salon/model/product.dart';
 import 'package:glow_vita_salon/services/api_service.dart';
 import 'package:glow_vita_salon/widget/product_card.dart';
-import '../routes/app_routes.dart';
+import 'package:glow_vita_salon/view/home.dart';
 
 class ProductPage extends StatefulWidget {
   const ProductPage({super.key});
@@ -30,7 +30,10 @@ class _ProductPageState extends State<ProductPage> {
       final products = await ApiService.getProducts();
       if (mounted) {
         // Extract unique categories from the product list, excluding any empty ones
-        final uniqueCategories = products.map((p) => p.category).where((c) => c.isNotEmpty).toSet();
+        final uniqueCategories = products
+            .map((p) => p.category)
+            .where((c) => c.isNotEmpty)
+            .toSet();
 
         // Print the loaded categories to the debug console to verify the data
         debugPrint("Dynamically loaded categories from API: $uniqueCategories");
@@ -63,25 +66,36 @@ class _ProductPageState extends State<ProductPage> {
         future: _productsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFF4A2C3F)));
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF4A2C3F)),
+            );
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error fetching products: ${snapshot.error}'));
+            return Center(
+              child: Text('Error fetching products: ${snapshot.error}'),
+            );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text('No products found'));
           } else {
             final allProducts = snapshot.data!;
-            final flashSaleProducts = allProducts.where((p) => p.isFlashSale).toList();
-            
+            final flashSaleProducts = allProducts
+                .where((p) => p.isFlashSale)
+                .toList();
+
             // Filter products based on the selected category
-            final filteredProducts = _selectedCategory == null || _selectedCategory == 'All'
+            final filteredProducts =
+                _selectedCategory == null || _selectedCategory == 'All'
                 ? allProducts
-                : allProducts.where((p) => p.category == _selectedCategory).toList();
+                : allProducts
+                      .where((p) => p.category == _selectedCategory)
+                      .toList();
 
             return CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(child: _buildSearchBar()),
                 if (flashSaleProducts.isNotEmpty) ...[
-                  SliverToBoxAdapter(child: _buildFlashSaleSection(flashSaleProducts)),
+                  SliverToBoxAdapter(
+                    child: _buildFlashSaleSection(flashSaleProducts),
+                  ),
                 ],
                 SliverToBoxAdapter(child: _buildFilterSection()),
                 _buildAllProductsGrid(filteredProducts),
@@ -138,7 +152,11 @@ class _ProductPageState extends State<ProductPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Icon(Icons.flash_on, size: 18, color: Color(0xFF4A2C3F)),
+                      const Icon(
+                        Icons.flash_on,
+                        size: 18,
+                        color: Color(0xFF4A2C3F),
+                      ),
                       Text(
                         'H SALE',
                         style: TextStyle(
@@ -162,36 +180,72 @@ class _ProductPageState extends State<ProductPage> {
                   const Text('Ends in', style: TextStyle(fontSize: 12)),
                   const SizedBox(width: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF4A2C3F),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text('01', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      '01',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 2.0),
-                    child: Text(':', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(
+                      ':',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF4A2C3F),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text('21', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      '21',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 2.0),
-                    child: Text(':', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(
+                      ':',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF4A2C3F),
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text('42', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      '42',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   TextButton(
@@ -236,7 +290,10 @@ class _ProductPageState extends State<ProductPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
       child: Row(
         children: [
-          _buildFilterDropdown(_selectedCategory ?? 'Categories', () => _showCategoryModal()),
+          _buildFilterDropdown(
+            _selectedCategory ?? 'Categories',
+            () => _showCategoryModal(),
+          ),
           const SizedBox(width: 8),
           _buildFilterDropdown('Brands', () {}),
           const SizedBox(width: 8),
@@ -259,10 +316,7 @@ class _ProductPageState extends State<ProductPage> {
         ),
         child: Row(
           children: [
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12),
-            ),
+            Text(label, style: const TextStyle(fontSize: 12)),
             const SizedBox(width: 4),
             const Icon(Icons.arrow_drop_down, size: 20),
           ],
@@ -280,18 +334,24 @@ class _ProductPageState extends State<ProductPage> {
           children: [
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Text('Select Category', style: Theme.of(context).textTheme.headlineSmall),
+              child: Text(
+                'Select Category',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
             ),
             // Use the dynamic _categories list here
-            ..._categories.map((category) => ListTile(
-                  title: Text(category),
-                  onTap: () {
-                    setState(() {
-                      _selectedCategory = category;
-                    });
-                    Navigator.pop(context);
-                  },
-                ))
+            ..._categories
+                .map(
+                  (category) => ListTile(
+                    title: Text(category),
+                    onTap: () {
+                      setState(() {
+                        _selectedCategory = category;
+                      });
+                      Navigator.pop(context);
+                    },
+                  ),
+                )
                 .toList(),
           ],
         );
@@ -303,29 +363,35 @@ class _ProductPageState extends State<ProductPage> {
     return SliverPadding(
       padding: const EdgeInsets.all(16.0),
       sliver: SliverMainAxisGroup(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${products.length} Products Found', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 16),
-                ],
-              ),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${products.length} Products Found',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
-            SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.65,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => ProductCard(product: products[index]),
-                childCount: products.length,
-              ),
+          ),
+          SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 0.65,
             ),
-          ]
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => ProductCard(product: products[index]),
+              childCount: products.length,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -333,9 +399,7 @@ class _ProductPageState extends State<ProductPage> {
   Widget _buildBottomNav() {
     return Container(
       height: 65,
-      decoration: const BoxDecoration(
-        color: Color(0xFF4A2C3F),
-      ),
+      decoration: const BoxDecoration(color: Color(0xFF4A2C3F)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -354,13 +418,30 @@ class _ProductPageState extends State<ProductPage> {
     return GestureDetector(
       onTap: () {
         if (index == 0) {
-          Navigator.pushReplacementNamed(context, AppRoutes.home);
-        }else if (index == 1) {
-          Navigator.pushReplacementNamed(context, AppRoutes.salonList);
-        }else if (index == 2){
-          Navigator.pushReplacementNamed(context, AppRoutes.appointment);
-        }
-        else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const Home(initialIndex: 0),
+            ),
+            (route) => false,
+          );
+        } else if (index == 1) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const Home(initialIndex: 1),
+            ),
+            (route) => false,
+          );
+        } else if (index == 2) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const Home(initialIndex: 2),
+            ),
+            (route) => false,
+          );
+        } else {
           setState(() {
             _currentIndex = index;
           });
@@ -385,10 +466,7 @@ class _ProductPageState extends State<ProductPage> {
           if (isSelected) ...[
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 11),
             ),
           ],
         ],

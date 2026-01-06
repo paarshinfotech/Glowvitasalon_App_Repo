@@ -4,11 +4,13 @@ import 'package:glow_vita_salon/model/service.dart';
 class ServiceCard extends StatelessWidget {
   final Service service;
   final bool isSelected;
+  final VoidCallback? onBookTap;
 
   const ServiceCard({
     super.key,
     required this.service,
     this.isSelected = false,
+    this.onBookTap,
   });
 
   @override
@@ -40,7 +42,11 @@ class ServiceCard extends StatelessWidget {
                     width: 80,
                     height: 80,
                     color: Colors.grey[200],
-                    child: const Icon(Icons.image, size: 40, color: Colors.grey),
+                    child: const Icon(
+                      Icons.image,
+                      size: 40,
+                      color: Colors.grey,
+                    ),
                   ),
                 ),
               ),
@@ -55,20 +61,30 @@ class ServiceCard extends StatelessWidget {
                       Flexible(
                         child: Text(
                           service.name,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (service.isDiscounted)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF4A2C3F),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             service.discountLabel ?? '',
-                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                     ],
@@ -84,12 +100,19 @@ class ServiceCard extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.access_time, size: 18, color: Colors.pink.shade300),
+                                Icon(
+                                  Icons.access_time,
+                                  size: 18,
+                                  color: Colors.pink.shade300,
+                                ),
                                 const SizedBox(width: 6),
                                 Flexible(
                                   child: Text(
                                     service.duration,
-                                    style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade700,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -98,12 +121,19 @@ class ServiceCard extends StatelessWidget {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                Icon(Icons.monetization_on_outlined, size: 18, color: Colors.orange.shade600),
+                                Icon(
+                                  Icons.monetization_on_outlined,
+                                  size: 18,
+                                  color: Colors.orange.shade600,
+                                ),
                                 const SizedBox(width: 6),
                                 Flexible(
                                   child: Text(
                                     'From ₹${service.price.toStringAsFixed(0)}/-',
-                                    style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade700,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -113,16 +143,30 @@ class ServiceCard extends StatelessWidget {
                         ),
                       ),
                       OutlinedButton(
-                        onPressed: () {},
+                        onPressed: onBookTap,
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          side: const BorderSide(color: Color(0xFF4A2C3F)),
+                          side: BorderSide(
+                            color: isSelected
+                                ? Colors.red.shade400
+                                : const Color(0xFF4A2C3F),
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          backgroundColor: Colors.white,
+                          backgroundColor: isSelected
+                              ? Colors.red.shade50
+                              : Colors.white,
                         ),
-                        child: const Text('Book Now', style: TextStyle(color: Color(0xFF4A2C3F), fontWeight: FontWeight.w600)),
+                        child: Text(
+                          isSelected ? 'Selected' : 'Book Now',
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.red.shade400
+                                : const Color(0xFF4A2C3F),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ),
