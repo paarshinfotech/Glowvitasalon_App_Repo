@@ -4,6 +4,7 @@ import '../view/home.dart';
 import '../view/login_screen.dart';
 import '../view/map_picker_screen.dart';
 import '../view/notification_screen.dart';
+import '../view/profile_screen.dart';
 import '../view/register_screen.dart';
 import '../view/salondetails_screen.dart';
 import '../view/booking_screen.dart';
@@ -23,6 +24,7 @@ class AppRoutes {
   static const String appointment = '/appointment';
   static const String notification = '/notification';
   static const String salonList = '/salonList';
+  static const String profile = '/profile';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -42,6 +44,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const Home(initialIndex: 1));
       case notification:
         return MaterialPageRoute(builder: (_) => const NotificationScreen());
+      case profile:
+        return MaterialPageRoute(builder: (_) => const ProfileScreen());
 
       case salonDetails:
         if (settings.arguments is Salon) {

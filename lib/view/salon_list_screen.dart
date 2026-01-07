@@ -44,7 +44,7 @@ class SalonListScreen extends StatelessWidget {
                               crossAxisCount: 2,
                               crossAxisSpacing: 16,
                               mainAxisSpacing: 16,
-                              childAspectRatio: 0.6,
+                              childAspectRatio: 0.80,
                             ),
                         itemCount: controller.filteredSalons.length,
                         itemBuilder: (context, index) {

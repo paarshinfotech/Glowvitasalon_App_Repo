@@ -63,8 +63,26 @@ class SalonListController extends ChangeNotifier {
     } else {
       _filteredSalons = _salons.where((salon) {
         final queryLower = query.toLowerCase();
-        return salon.name.toLowerCase().contains(queryLower) ||
-            salon.address.toLowerCase().contains(queryLower);
+
+        final nameMatch = salon.name.toLowerCase().contains(queryLower);
+        final addressMatch = salon.address.toLowerCase().contains(queryLower);
+        final typeMatch = salon.salonType.toLowerCase().contains(queryLower);
+
+        // Search in subCategories
+        final subCategoryMatch = salon.subCategories.any(
+          (sub) => sub.toLowerCase().contains(queryLower),
+        );
+
+        // Search in services
+        final serviceMatch = salon.services.any(
+          (service) => service.category.toLowerCase().contains(queryLower),
+        );
+
+        return nameMatch ||
+            addressMatch ||
+            typeMatch ||
+            subCategoryMatch ||
+            serviceMatch;
       }).toList();
     }
     notifyListeners();

@@ -229,4 +229,37 @@ class ApiService {
       return [];
     }
   }
+
+  Future<Map<String, dynamic>> getProfile(String token) async {
+    final url = Uri.parse('$baseUrl/api/profile');
+
+    print("DEBUG: Sending Profile Request with Token: $token");
+
+    // Some APIs expect the token in the 'Cookie' header
+    // Removing 'Bearer ' prefix if present for the cookie value specifically
+    String rawToken = token;
+    if (token.startsWith('Bearer ')) {
+      rawToken = token.substring(7);
+    }
+
+    final authHeader = token.startsWith('Bearer ') ? token : 'Bearer $token';
+
+    final response = await http.get(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": authHeader,
+        "Cookie": "token=$rawToken", // Send token as cookie
+      },
+    );
+
+    print("PROFILE RESPONSE: ${response.statusCode} - ${response.body}");
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to load profile');
+    }
+  }
 }

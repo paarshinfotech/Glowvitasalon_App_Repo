@@ -9,6 +9,7 @@ import 'package:glow_vita_salon/routes/app_routes.dart';
 import '../controller/home_controller.dart';
 import 'package:glow_vita_salon/view/salon_list_screen.dart';
 import 'package:glow_vita_salon/view/appointments_screen.dart';
+import 'package:glow_vita_salon/view/category_salons_screen.dart'; // Import created screen
 import 'package:provider/provider.dart';
 
 class Home extends StatefulWidget {
@@ -37,17 +38,49 @@ class _HomeState extends State<Home> {
           return Scaffold(
             appBar: (_currentIndex == 0)
                 ? AppBar(
-                    title: _buildLocationHeader(controller),
-                    automaticallyImplyLeading: false,
-                    actions: [
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.notifications_outlined,
-                          color: Colors.black,
+                    backgroundColor: Colors.white,
+                    elevation: 0,
+                    toolbarHeight: 70,
+                    title: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushNamed(context, AppRoutes.profile);
+                          },
+                          child: Row(
+                            children: const [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundImage: NetworkImage(
+                                  'https://i.pravatar.cc/150?img=5',
+                                ), // Placeholder or use user data
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                "Hii, Olivia Joy", // Placeholder or use user data
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                      ],
+                    ),
+                    actions: [
+                      _buildAppBarActionButton(
+                        Icons.notifications_none_outlined,
+                        () {
+                          Navigator.pushNamed(context, AppRoutes.notification);
+                        },
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 12),
+                      _buildAppBarActionButton(Icons.search, () {
+                        Navigator.pushNamed(context, AppRoutes.salonList);
+                      }),
+                      const SizedBox(width: 16),
                     ],
                     bottom: PreferredSize(
                       preferredSize: const Size.fromHeight(60.0),
@@ -57,21 +90,47 @@ class _HomeState extends State<Home> {
                           right: 16,
                           bottom: 12,
                         ),
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: "Search for 'Massage'",
-                            prefixIcon: const Icon(
-                              Icons.search,
-                              color: Colors.grey,
+                        child: InkWell(
+                          onTap: () async {
+                            final result = await Navigator.pushNamed(
+                              context,
+                              AppRoutes.mappicker,
+                            );
+                            if (result != null && result is Map) {
+                              final String? address = result['address'];
+                              if (address != null && address.isNotEmpty) {
+                                controller.updateLocation(address);
+                              }
+                            }
+                          },
+                          child: Container(
+                            height: 48,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade400),
                             ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              vertical: 0,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on_outlined,
+                                  color: Colors.grey.shade600,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    controller.location,
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 14,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -109,14 +168,34 @@ class _HomeState extends State<Home> {
                         child: _buildOfferCarousel(controller),
                       ),
                       const SizedBox(height: 20),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          "Popular Salons",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Popular Salons",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.salonList,
+                                );
+                              },
+                              child: const Text(
+                                "See All",
+                                style: TextStyle(
+                                  color: Color(0xFF4A2C3F),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -125,14 +204,34 @@ class _HomeState extends State<Home> {
                         child: _buildPopularSalonList(controller),
                       ),
                       const SizedBox(height: 20),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          "Recommended for you",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Recommended for you",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.salonList,
+                                );
+                              },
+                              child: const Text(
+                                "See All",
+                                style: TextStyle(
+                                  color: Color(0xFF4A2C3F),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -141,14 +240,34 @@ class _HomeState extends State<Home> {
                         child: _buildRecommendedSalonList(controller),
                       ),
                       const SizedBox(height: 20),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          "Latest Products",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Latest Products",
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.products,
+                                );
+                              },
+                              child: const Text(
+                                "See All",
+                                style: TextStyle(
+                                  color: Color(0xFF4A2C3F),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -185,36 +304,6 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildLocationHeader(HomeController controller) {
-    return InkWell(
-      onTap: () async {
-        final result = await Navigator.pushNamed(context, AppRoutes.mappicker);
-        if (result != null && result is Map) {
-          final String? address = result['address'];
-          if (address != null && address.isNotEmpty) {
-            controller.updateLocation(address);
-          }
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0),
-        child: Row(
-          children: [
-            Icon(Icons.location_on_outlined, color: Colors.grey.shade600),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                controller.location,
-                style: TextStyle(color: Colors.grey.shade800, fontSize: 16),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildCategorySection(HomeController controller) {
     if (controller.isLoading && controller.categories.isEmpty) {
       return const SizedBox(
@@ -232,7 +321,7 @@ class _HomeState extends State<Home> {
             itemCount: controller.categories.length,
             itemBuilder: (context, index) {
               final category = controller.categories[index];
-              return _buildCategoryItem(category);
+              return _buildCategoryItem(category, controller);
             },
           ),
         ),
@@ -240,10 +329,33 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget _buildCategoryItem(Category category) {
+  Widget _buildCategoryItem(Category category, HomeController controller) {
     return GestureDetector(
       onTap: () {
         debugPrint("Selected Category: ${category.name}");
+        // Controller is passed directly now
+        final filteredSalons = controller.allSalons.where((salon) {
+          final categoryName = category.name.toLowerCase();
+          final typeMatch = salon.salonType.toLowerCase() == categoryName;
+          final subCategoryMatch = salon.subCategories.any(
+            (sub) => sub.toLowerCase().contains(categoryName),
+          );
+          final serviceMatch = salon.services.any(
+            (service) => service.category.toLowerCase().contains(categoryName),
+          );
+
+          return typeMatch || subCategoryMatch || serviceMatch;
+        }).toList();
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CategorySalonsScreen(
+              categoryName: category.name,
+              salons: filteredSalons,
+            ),
+          ),
+        );
       },
       child: Container(
         width: 60,
@@ -283,6 +395,8 @@ class _HomeState extends State<Home> {
               category.name,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -376,12 +490,12 @@ class _HomeState extends State<Home> {
   Widget _buildPopularSalonList(HomeController controller) {
     if (controller.isLoading && controller.popularSalons.isEmpty) {
       return const SizedBox(
-        height: 245,
+        height: 255,
         child: Center(child: CircularProgressIndicator()),
       );
     }
     return SizedBox(
-      height: 245,
+      height: 255,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: controller.popularSalons.length,
@@ -403,6 +517,7 @@ class _HomeState extends State<Home> {
           );
         },
         child: Container(
+          margin: const EdgeInsets.only(right: 16),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -538,6 +653,8 @@ class _HomeState extends State<Home> {
                         color: Colors.grey.shade600,
                         fontSize: 11,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
                     Row(
@@ -555,6 +672,7 @@ class _HomeState extends State<Home> {
                               color: Colors.grey[600],
                               fontSize: 10,
                             ),
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -569,11 +687,15 @@ class _HomeState extends State<Home> {
                           size: 12,
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          '${salon.clientCount}+ Clients',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 10,
+                        Expanded(
+                          child: Text(
+                            '${salon.clientCount}+ Clients',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 10,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -591,12 +713,12 @@ class _HomeState extends State<Home> {
   Widget _buildRecommendedSalonList(HomeController controller) {
     if (controller.isLoading && controller.recommendedSalons.isEmpty) {
       return const SizedBox(
-        height: 225,
+        height: 255,
         child: Center(child: CircularProgressIndicator()),
       );
     }
     return SizedBox(
-      height: 225,
+      height: 255,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: controller.recommendedSalons.length,
@@ -810,6 +932,24 @@ class _HomeState extends State<Home> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildAppBarActionButton(IconData icon, VoidCallback onPressed) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 20, color: Colors.black87),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
       ),
     );
   }

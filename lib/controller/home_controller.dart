@@ -3,6 +3,7 @@ import 'package:glow_vita_salon/model/category.dart';
 import '../model/offers.dart';
 import '../model/product.dart';
 import '../model/salon.dart';
+import '../model/vendor.dart';
 
 import '../services/api_service.dart';
 import 'package:geolocator/geolocator.dart';
@@ -37,6 +38,7 @@ class HomeController extends ChangeNotifier {
 
   List<Category> categories = [];
 
+  List<Salon> allSalons = []; // Store all salons for filtering
   List<Salon> popularSalons = [];
   List<Salon> recommendedSalons = [];
   List<Product> products = [];
@@ -46,34 +48,51 @@ class HomeController extends ChangeNotifier {
     _getUserLocation();
   }
 
-  void _fetchData() async {
+  Future<void> _fetchData() async {
     try {
       isLoading = true;
-      notifyListeners();
+      // notifyListeners(); // Avoid unnecessary rebuilds if called from constructor
 
       print('Fetching data from API...');
-      print('Fetching data from API...');
-      final vendorsFuture = ApiService.getVendors();
-      final productsFuture = ApiService.getProducts();
-      final categoriesFuture = ApiService.getCategories();
 
-      final vendors = await vendorsFuture;
-      final productsData = await productsFuture;
-      final categoriesData = await categoriesFuture;
+      // Fetch all APIs in parallel using Future.wait
+      // This significantly reduces load time compared to sequential awaits
+      final results = await Future.wait([
+        ApiService.getVendors(),
+        ApiService.getProducts(),
+        ApiService.getCategories(),
+      ]);
 
-      final salons = vendors.map((vendor) => Salon.fromVendor(vendor)).toList();
+      final vendors =
+          results[0]
+              as List<dynamic>; // Cast is safe due to ApiService return types
+      final productsData = results[1] as List<Product>;
+      final categoriesData = results[2] as List<Category>;
+
+      // Perform heavy mapping/processing here
+      final salons = vendors.map((vendor) {
+        if (vendor is Vendor) {
+          return Salon.fromVendor(vendor);
+        }
+        // Handle edge case if getVendors returns plain dynamic list which it shouldn't
+        return Salon.fromVendor(vendor as Vendor);
+      }).toList();
+
       categories = categoriesData;
+      allSalons = salons; // Store all salons
 
-      // Ensure we have enough salons to split
-      if (salons.length >= 6) {
-        popularSalons = salons.take(3).toList();
-        recommendedSalons = salons.skip(3).take(3).toList();
-      } else if (salons.length > 3) {
-        popularSalons = salons.take(3).toList();
-        recommendedSalons = salons.skip(3).toList();
+      // Logic to split salons (Client-side logic is fast)
+      // Logic to split salons (Client-side logic is fast)
+      if (salons.length >= 8) {
+        popularSalons = salons.take(4).toList();
+        recommendedSalons = salons.skip(4).take(4).toList();
+      } else if (salons.length > 4) {
+        popularSalons = salons.take(4).toList();
+        recommendedSalons = salons.skip(4).toList();
       } else {
+        // Fallback for limited data: Show same salons but maybe reversed/shuffled
         popularSalons = salons;
-        recommendedSalons = [];
+        recommendedSalons = List.from(salons.reversed);
       }
 
       products = productsData.take(4).toList();

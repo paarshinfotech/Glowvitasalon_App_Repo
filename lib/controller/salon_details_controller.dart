@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:glow_vita_salon/model/feedback.dart';
+
 import 'package:glow_vita_salon/model/product.dart';
 import 'package:glow_vita_salon/model/salon.dart';
 import 'package:glow_vita_salon/model/service.dart';

@@ -53,10 +53,7 @@ class LoginController {
     onStateChanged?.call();
 
     try {
-      final result = await _apiService.login(
-        email: email,
-        password: password,
-      );
+      final result = await _apiService.login(email: email, password: password);
 
       // --- DEBUGGING: Print the API response ---
       if (kDebugMode) {
@@ -65,16 +62,55 @@ class LoginController {
       // -----------------------------------------
 
       // Some APIs might not return success: true but just the token
-      if (result['success'] == true || (result['token'] != null && result['token'].toString().isNotEmpty)) {
-        final token = result['token'] as String? ?? '';
-        final user = result['user'] as Map<String, dynamic>? ?? {};
-        final firstName = user['firstName'] as String? ?? '';
-        final lastName = user['lastName'] as String? ?? '';
-        await AuthController.saveLogin(token, firstName, lastName);
+      if (result['success'] == true ||
+          (result['token'] != null) ||
+          (result['data'] != null && result['data']['token'] != null)) {
+        String token = result['token'] as String? ?? '';
+        // Check for various token keys
+        if (token.isEmpty) token = result['access_token'] as String? ?? '';
+        if (token.isEmpty) token = result['accessToken'] as String? ?? '';
 
-        isLoading = false;
-        onStateChanged?.call();
-        return true;
+        // Handle nested token in 'data'
+        if (token.isEmpty && result['data'] != null && result['data'] is Map) {
+          final data = result['data'];
+          token = data['token'] as String? ?? '';
+          if (token.isEmpty) token = data['access_token'] as String? ?? '';
+          if (token.isEmpty) token = data['accessToken'] as String? ?? '';
+        }
+        // Handle nested token in 'authorization' (common in some frameworks)
+        if (token.isEmpty &&
+            result['authorization'] != null &&
+            result['authorization'] is Map) {
+          final auth = result['authorization'];
+          token = auth['token'] as String? ?? '';
+        }
+
+        print("DEBUG: Extracted Token: $token"); // Debug print
+
+        final user =
+            result['user'] as Map<String, dynamic>? ??
+            (result['data'] != null && result['data']['user'] != null
+                ? result['data']['user'] as Map<String, dynamic>
+                : {});
+
+        final firstName =
+            user['firstName'] as String? ?? user['name'] as String? ?? '';
+        final lastName = user['lastName'] as String? ?? '';
+
+        if (token.isNotEmpty) {
+          await AuthController.saveLogin(token, firstName, lastName);
+          isLoading = false;
+          onStateChanged?.call();
+          return true;
+        } else {
+          print(
+            "DEBUG: Login successful response but NO TOKEN found in known keys.",
+          );
+          errorMessage = 'Login failed: No authentication token found.';
+          isLoading = false;
+          onStateChanged?.call();
+          return false;
+        }
       } else {
         errorMessage = result['message'] ?? 'Invalid email or password';
         isLoading = false;

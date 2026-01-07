@@ -7,7 +7,11 @@ class AuthController {
   static const String _lastNameKey = 'lastName';
 
   /// Save login data
-  static Future<void> saveLogin(String token, String firstName, String lastName) async {
+  static Future<void> saveLogin(
+    String token,
+    String firstName,
+    String lastName,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_isLoggedInKey, true);
     await prefs.setString(_tokenKey, token);
@@ -19,6 +23,12 @@ class AuthController {
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_isLoggedInKey) ?? false;
+  }
+
+  /// Get Token
+  static Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_tokenKey);
   }
 
   /// Get User Full Name

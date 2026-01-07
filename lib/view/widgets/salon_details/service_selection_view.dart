@@ -16,8 +16,6 @@ class ServiceSelectionHeader extends StatelessWidget {
 
     // Determine visibility based on capabilities
     bool showWeddingOption = controller.hasWeddingService;
-    // Or check if any services are wedding enabled?
-    // For now rely on subCategory 'custom-location' as per plan.
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 24.0),
@@ -42,119 +40,125 @@ class ServiceSelectionHeader extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () =>
-                        controller.setServiceType(ServiceType.individual),
-                    icon: Icon(
-                      Icons.person,
-                      color: isIndividualSelected ? Colors.white : Colors.black,
-                      size: 20,
-                    ),
-                    label: Text(
-                      'Individual Services',
-                      style: TextStyle(
-                        color: isIndividualSelected
-                            ? Colors.white
-                            : Colors.black,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isIndividualSelected
-                          ? const Color(0xFF4A2C3F)
-                          : Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      side: isIndividualSelected
-                          ? null
-                          : BorderSide(color: Colors.grey.shade400),
-                    ),
-                  ),
-                ),
-                if (showWeddingOption) ...[
-                  const SizedBox(width: 8),
+          if (controller.services.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () =>
-                          controller.setServiceType(ServiceType.wedding),
+                          controller.setServiceType(ServiceType.individual),
                       icon: Icon(
-                        Icons.favorite,
-                        color: isWeddingSelected ? Colors.white : Colors.black,
+                        Icons.person,
+                        color: isIndividualSelected
+                            ? Colors.white
+                            : Colors.black,
                         size: 20,
                       ),
                       label: Text(
-                        'Wedding Packages',
+                        'Individual Services',
                         style: TextStyle(
-                          color: isWeddingSelected
+                          color: isIndividualSelected
                               ? Colors.white
                               : Colors.black,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isWeddingSelected
+                        backgroundColor: isIndividualSelected
                             ? const Color(0xFF4A2C3F)
                             : Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        side: isWeddingSelected
+                        side: isIndividualSelected
                             ? null
                             : BorderSide(color: Colors.grey.shade400),
                       ),
                     ),
                   ),
-                ],
-              ],
-            ),
-          ),
-          if (isIndividualSelected) ...[
-            const SizedBox(height: 16),
-            BookingPreferenceSection(controller: controller),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 40,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: controller.serviceCategories.length,
-                itemBuilder: (context, index) {
-                  final category = controller.serviceCategories[index];
-                  final isSelected =
-                      category == controller.selectedServiceCategory;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: GestureDetector(
-                      onTap: () => controller.selectServiceCategory(category),
-                      child: Chip(
+                  if (showWeddingOption) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () =>
+                            controller.setServiceType(ServiceType.wedding),
+                        icon: Icon(
+                          Icons.favorite,
+                          color: isWeddingSelected
+                              ? Colors.white
+                              : Colors.black,
+                          size: 20,
+                        ),
                         label: Text(
-                          category,
+                          'Wedding Packages',
                           style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.black87,
+                            color: isWeddingSelected
+                                ? Colors.white
+                                : Colors.black,
                           ),
                         ),
-                        backgroundColor: isSelected
-                            ? const Color(0xFF4A2C3F)
-                            : Colors.grey.shade200,
-                        side: BorderSide(
-                          color: isSelected
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isWeddingSelected
                               ? const Color(0xFF4A2C3F)
-                              : Colors.grey.shade400,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                              : Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          side: isWeddingSelected
+                              ? null
+                              : BorderSide(color: Colors.grey.shade400),
                         ),
                       ),
                     ),
-                  );
-                },
+                  ],
+                ],
               ),
             ),
+            if (isIndividualSelected) ...[
+              const SizedBox(height: 16),
+              BookingPreferenceSection(controller: controller),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 40,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  itemCount: controller.serviceCategories.length,
+                  itemBuilder: (context, index) {
+                    final category = controller.serviceCategories[index];
+                    final isSelected =
+                        category == controller.selectedServiceCategory;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: GestureDetector(
+                        onTap: () => controller.selectServiceCategory(category),
+                        child: Chip(
+                          label: Text(
+                            category,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          backgroundColor: isSelected
+                              ? const Color(0xFF4A2C3F)
+                              : Colors.grey.shade200,
+                          side: BorderSide(
+                            color: isSelected
+                                ? const Color(0xFF4A2C3F)
+                                : Colors.grey.shade400,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ],
         ],
       ),
@@ -323,6 +327,35 @@ class ServiceList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (services.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.category_outlined, size: 60, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              const Text(
+                'No Services Available',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This salon has not listed any services under this category yet.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         final service = services[index];
