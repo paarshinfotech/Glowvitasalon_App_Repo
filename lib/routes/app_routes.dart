@@ -11,6 +11,7 @@ import '../view/booking_screen.dart';
 import '../view/product_details_screen.dart';
 import '../model/product.dart';
 import '../view/product_page.dart';
+import '../view/search_screen.dart';
 
 class AppRoutes {
   static const String home = '/home';
@@ -25,11 +26,14 @@ class AppRoutes {
   static const String notification = '/notification';
   static const String salonList = '/salonList';
   static const String profile = '/profile';
+  static const String search = '/search';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case home:
         return MaterialPageRoute(builder: (_) => const Home());
+      case search:
+        return MaterialPageRoute(builder: (_) => const SearchScreen());
       case login:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
       case register:

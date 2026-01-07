@@ -70,4 +70,24 @@ class Vendor {
 
   // Get full gallery URLs
   List<String> get fullGalleryUrls => gallery.map(_formatUrl).toList();
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      'firstName': firstName,
+      'lastName': lastName,
+      'businessName': businessName,
+      'state': state,
+      'city': city,
+      'category': category,
+      'subCategories': subCategories,
+      'description': description,
+      'profileImage': profileImage,
+      'gallery': gallery,
+      'subscription': subscription,
+      'createdAt': createdAt,
+      'services': services
+          .map((x) => x.toJson())
+          .toList(), // Assuming Service has toJson as well, if not need to add
+    };
+  }
 }

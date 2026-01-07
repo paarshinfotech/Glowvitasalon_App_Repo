@@ -48,17 +48,17 @@ class _HomeState extends State<Home> {
                             Navigator.pushNamed(context, AppRoutes.profile);
                           },
                           child: Row(
-                            children: const [
-                              CircleAvatar(
+                            children: [
+                              const CircleAvatar(
                                 radius: 20,
                                 backgroundImage: NetworkImage(
                                   'https://i.pravatar.cc/150?img=5',
                                 ), // Placeholder or use user data
                               ),
-                              SizedBox(width: 12),
+                              const SizedBox(width: 12),
                               Text(
-                                "Hii, Olivia Joy", // Placeholder or use user data
-                                style: TextStyle(
+                                "Hii, ${controller.userName}",
+                                style: const TextStyle(
                                   color: Colors.black,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -78,7 +78,7 @@ class _HomeState extends State<Home> {
                       ),
                       const SizedBox(width: 12),
                       _buildAppBarActionButton(Icons.search, () {
-                        Navigator.pushNamed(context, AppRoutes.salonList);
+                        Navigator.pushNamed(context, AppRoutes.search);
                       }),
                       const SizedBox(width: 16),
                     ],

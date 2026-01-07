@@ -66,4 +66,24 @@ class Product {
     final imagePath = image.startsWith('/') ? image.substring(1) : image;
     return "$baseUrl/$imagePath";
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'price': price,
+      'salePrice': salePrice,
+      'image': image,
+      'vendorId': vendorId,
+      'vendorName': vendorName,
+      'category': category,
+      'stock': stock,
+      'isNew': isNew,
+      'rating': rating,
+      'reviewCount': reviewCount,
+      'hint': hint,
+      'isFlashSale': isFlashSale,
+    };
+  }
 }

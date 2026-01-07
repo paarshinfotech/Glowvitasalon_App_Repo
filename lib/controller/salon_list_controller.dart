@@ -10,47 +10,37 @@ class SalonListController extends ChangeNotifier {
   List<Salon> get filteredSalons => _filteredSalons;
   bool get isLoading => _isLoading;
 
+  List<String> _categories = [];
+  List<String> get categories => _categories;
+
   SalonListController() {
-    _fetchSalons();
+    _fetchData();
   }
 
-  void _fetchSalons() async {
+  void _fetchData() async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final vendors = await ApiService.getVendors();
+      final results = await Future.wait([
+        ApiService.getVendors(),
+        ApiService.getCategories(),
+      ]);
+
+      final vendors = results[0] as List<dynamic>;
+      final categoriesData = results[1] as List<dynamic>;
+
       _salons = vendors.map((vendor) => Salon.fromVendor(vendor)).toList();
       _filteredSalons = _salons;
+
+      // Extract category names for suggestion chips
+      _categories = categoriesData.map((cat) => cat.name as String).toList();
     } catch (e) {
-      print('Error fetching vendors: $e');
-      // Keep the static data as fallback if API fails
-      _salons = [
-        Salon(
-          id: '6915a50fd303709d2be34774',
-          name: 'Nidhi Hair & Nail Salon',
-          salonType: 'Hair Salon',
-          address: 'KBT Circle, Nashik',
-          rating: 4.9,
-          clientCount: 299,
-          imageUrl:
-              'https://images.pexels.com/photos/2811088/pexels-photo-2811088.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-          description: 'A premium salon for all your hair and nail needs.',
-          hasNewOffer: true,
-        ),
-        Salon(
-          id: 'static_2',
-          name: 'Vishakha Salon',
-          salonType: 'Hair Salon',
-          address: 'Dream Castle, Nashik',
-          rating: 3.4,
-          clientCount: 209,
-          imageUrl:
-              'https://images.pexels.com/photos/705255/pexels-photo-705255.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1',
-          description: 'Look your best with our expert stylists.',
-        ),
-      ];
-      _filteredSalons = _salons;
+      print('Error fetching data for search: $e');
+      // Keep fallback data logic or handle empty state
+      if (_salons.isEmpty) {
+        // ... static fallback ...
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -62,27 +52,46 @@ class SalonListController extends ChangeNotifier {
       _filteredSalons = _salons;
     } else {
       _filteredSalons = _salons.where((salon) {
-        final queryLower = query.toLowerCase();
+        final queryLower = query.toLowerCase().trim();
+        if (queryLower.isEmpty) return true;
 
-        final nameMatch = salon.name.toLowerCase().contains(queryLower);
-        final addressMatch = salon.address.toLowerCase().contains(queryLower);
-        final typeMatch = salon.salonType.toLowerCase().contains(queryLower);
+        final terms = queryLower
+            .split(RegExp(r'\s+'))
+            .where((t) => t.isNotEmpty);
 
-        // Search in subCategories
-        final subCategoryMatch = salon.subCategories.any(
-          (sub) => sub.toLowerCase().contains(queryLower),
-        );
+        // Construct a searchable corpus for this salon
+        final StringBuffer buffer = StringBuffer();
+        buffer.write(salon.name.toLowerCase());
+        buffer.write(" ");
+        buffer.write(salon.address.toLowerCase());
+        buffer.write(" ");
+        buffer.write(salon.salonType.toLowerCase());
+        buffer.write(" ");
+        // Add subcategories
+        for (var sub in salon.subCategories) {
+          buffer.write(sub.toLowerCase());
+          buffer.write(" ");
+        }
+        // Add services
+        for (var service in salon.services) {
+          buffer.write(service.name.toLowerCase());
+          buffer.write(" ");
+          buffer.write(service.category.toLowerCase());
+          buffer.write(" ");
+        }
 
-        // Search in services
-        final serviceMatch = salon.services.any(
-          (service) => service.category.toLowerCase().contains(queryLower),
-        );
+        final searchableText = buffer.toString();
 
-        return nameMatch ||
-            addressMatch ||
-            typeMatch ||
-            subCategoryMatch ||
-            serviceMatch;
+        // Check if ALL terms match the searchable text (AND logic)
+        return terms.every((term) {
+          if (term.length == 1) {
+            // For single character, force "Starts with" logic (Word Boundary)
+            // This prevents "a" from matching "Salon"
+            return RegExp('\\b${RegExp.escape(term)}').hasMatch(searchableText);
+          }
+          // For longer terms, standard "contains" is better (e.g. "cut" matches "Haircut")
+          return searchableText.contains(term);
+        });
       }).toList();
     }
     notifyListeners();

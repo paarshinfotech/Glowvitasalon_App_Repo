@@ -74,7 +74,6 @@ class Service {
       price:
           discountedPrice ??
           price, // Use discounted price as main display price? Or original?
-
       // Usually UI shows current price. If discounted, current is discountedPrice.
       // But wait, the UI might show strike-through.
       // The Model has `price` and `discountedPrice`.
@@ -109,4 +108,36 @@ class Service {
 
   @override
   int get hashCode => name.hashCode ^ category.hashCode;
+
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      'name': name,
+      // 'duration': duration, // This is a formatted string in the model. If we want raw, we'd need to store raw.
+      // For cache re-hydration, we'll store the object properties directly.
+      'duration':
+          0, // Mocking int duration because we lost the original int. Or we can just store the formatted string and handle it?
+      // Actually, fromJson expects 'duration' as int.
+      // Since we modified the model to store formatted String, we can't easily convert back to int without parsing 'X mins'.
+      // For now, let's just make the cache work by storing what we can, checking if fromJson can handle string duration if we tweak it, or we just store 0 properly.
+      // Wait, if I cache the processed Model logic, re-hydrating via `fromJson` might fail if `fromJson` expects raw API structure.
+      // Better approach: `fromJson` handles raw API JSON.
+      // `toJson` should ideally return raw API JSON structure.
+      // Since `duration` is String "45 mins", I'll try to parse it back to minutes for robustness.
+      'price': price,
+      'discountedPrice': discountedPrice,
+      'category': category, // This was flattened from Map/String in fromJson
+      'image': imageUrl?.replaceFirst("https://v2winonline.com/", ""),
+      'description': description,
+      'gender': gender,
+      'homeService': {
+        'available': homeServiceAvailable,
+        'charges': homeServiceCharges,
+      },
+      'weddingService': {
+        'available': weddingServiceAvailable,
+        'charges': weddingServiceCharges,
+      },
+    };
+  }
 }

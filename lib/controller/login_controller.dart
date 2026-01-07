@@ -97,6 +97,9 @@ class LoginController {
             user['firstName'] as String? ?? user['name'] as String? ?? '';
         final lastName = user['lastName'] as String? ?? '';
 
+        // Debug
+        print("DEBUG LOGGING IN: Name=$firstName $lastName");
+
         if (token.isNotEmpty) {
           await AuthController.saveLogin(token, firstName, lastName);
           isLoading = false;

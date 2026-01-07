@@ -19,4 +19,15 @@ class Category {
       iconUrl: image.isEmpty ? 'https://via.placeholder.com/60' : image,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      'name': name,
+      'categoryImage': iconUrl.replaceFirst(
+        "https://v2winonline.com/",
+        "",
+      ), // Store relative to keep consistency logic
+    };
+  }
 }
