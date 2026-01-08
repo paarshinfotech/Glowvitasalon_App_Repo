@@ -15,13 +15,20 @@ class ProductPage extends StatefulWidget {
 class _ProductPageState extends State<ProductPage> {
   int _currentIndex = 4;
   late Future<List<Product>> _productsFuture;
+  // State variables for filtering
   String? _selectedCategory;
-  List<String> _categories = ['All']; // Initialize with 'All'
+  String? _selectedSalon;
+  RangeValues _selectedPriceRange = const RangeValues(0, 10000);
+  double _maxPrice = 10000;
+  bool _isPriceFilterActive = false;
+
+  List<String> _categories = ['All'];
+  List<String> _salons = ['All'];
 
   @override
   void initState() {
     super.initState();
-    // Load products and dynamically populate categories
+    // Load products and dynamically populate categories, salons, and price range
     _productsFuture = _loadProductsAndCategories();
   }
 
@@ -29,23 +36,43 @@ class _ProductPageState extends State<ProductPage> {
     try {
       final products = await ApiService.getProducts();
       if (mounted) {
-        // Extract unique categories from the product list, excluding any empty ones
+        // Extract unique categories
         final uniqueCategories = products
             .map((p) => p.category)
             .where((c) => c.isNotEmpty)
             .toSet();
 
-        // Print the loaded categories to the debug console to verify the data
-        debugPrint("Dynamically loaded categories from API: $uniqueCategories");
+        // Extract unique vendor names (salons)
+        final uniqueSalons = products
+            .map((p) => p.vendorName)
+            .where((v) => v.isNotEmpty)
+            .toSet();
 
-        // Update the state with the new, dynamic categories
+        // Calculate max price for the range slider
+        double maxPrice = 0;
+        if (products.isNotEmpty) {
+          maxPrice = products
+              .map((p) => p.price.toDouble())
+              .reduce((a, b) => a > b ? a : b);
+        }
+        // Add a buffer to max price for better UX, or round it up
+        maxPrice = (maxPrice / 100).ceil() * 100.0;
+        if (maxPrice == 0) maxPrice = 1000; // Fallback
+
+        // Update state
         setState(() {
           _categories = ['All', ...uniqueCategories];
+          _salons = ['All', ...uniqueSalons];
+          _maxPrice = maxPrice;
+          // Only reset range if it hasn't been touched or matches defaults in a way that implies reset might be needed.
+          // For now, let's initialize it to full range.
+          if (!_isPriceFilterActive) {
+            _selectedPriceRange = RangeValues(0, _maxPrice);
+          }
         });
       }
       return products;
     } catch (e) {
-      // The FutureBuilder will handle displaying the error
       rethrow;
     }
   }
@@ -81,13 +108,28 @@ class _ProductPageState extends State<ProductPage> {
                 .where((p) => p.isFlashSale)
                 .toList();
 
-            // Filter products based on the selected category
-            final filteredProducts =
-                _selectedCategory == null || _selectedCategory == 'All'
-                ? allProducts
-                : allProducts
-                      .where((p) => p.category == _selectedCategory)
-                      .toList();
+            // Apply Filters
+            final filteredProducts = allProducts.where((p) {
+              // Category Filter
+              final matchCategory =
+                  _selectedCategory == null || _selectedCategory == 'All'
+                  ? true
+                  : p.category == _selectedCategory;
+
+              // Salon Filter
+              final matchSalon =
+                  _selectedSalon == null || _selectedSalon == 'All'
+                  ? true
+                  : p.vendorName == _selectedSalon;
+
+              // Price Filter
+              final matchPrice = !_isPriceFilterActive
+                  ? true
+                  : (p.price >= _selectedPriceRange.start &&
+                        p.price <= _selectedPriceRange.end);
+
+              return matchCategory && matchSalon && matchPrice;
+            }).toList();
 
             return CustomScrollView(
               slivers: [
@@ -295,13 +337,157 @@ class _ProductPageState extends State<ProductPage> {
             () => _showCategoryModal(),
           ),
           const SizedBox(width: 8),
-          _buildFilterDropdown('Brands', () {}),
+          _buildFilterDropdown(
+            _selectedSalon ?? 'Salons',
+            () => _showSalonModal(),
+          ),
           const SizedBox(width: 8),
-          _buildFilterDropdown('Price Range', () {}),
-          const SizedBox(width: 8),
-          _buildFilterDropdown('Skin Type', () {}),
+          _buildFilterDropdown(
+            _isPriceFilterActive
+                ? '₹${_selectedPriceRange.start.round()} - ₹${_selectedPriceRange.end.round()}'
+                : 'Price Range',
+            () => _showPriceRangeModal(),
+          ),
         ],
       ),
+    );
+  }
+
+  void _showPriceRangeModal() {
+    // Temporary state variable for the modal interaction
+    RangeValues tempRange = _selectedPriceRange;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Select Price Range',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '₹${tempRange.start.round()}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '₹${tempRange.end.round()}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  RangeSlider(
+                    values: tempRange,
+                    min: 0,
+                    max: _maxPrice,
+                    divisions: 100, // Optional: makes it discrete
+                    activeColor: const Color(0xFF4A2C3F),
+                    labels: RangeLabels(
+                      '₹${tempRange.start.round()}',
+                      '₹${tempRange.end.round()}',
+                    ),
+                    onChanged: (RangeValues values) {
+                      setModalState(() {
+                        tempRange = values;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            // Clear Filter
+                            setState(() {
+                              _selectedPriceRange = RangeValues(0, _maxPrice);
+                              _isPriceFilterActive = false;
+                            });
+                            Navigator.pop(context);
+                          },
+                          child: const Text(
+                            'Clear',
+                            style: TextStyle(color: Color(0xFF4A2C3F)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            // Apply Filter
+                            setState(() {
+                              _selectedPriceRange = tempRange;
+                              _isPriceFilterActive = true;
+                            });
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4A2C3F),
+                          ),
+                          child: const Text('Apply'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showSalonModal() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Select Salon',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+            ),
+            // Use the dynamic _salons list here
+            Expanded(
+              child: ListView(
+                shrinkWrap: true,
+                children: _salons
+                    .map(
+                      (salon) => ListTile(
+                        title: Text(salon),
+                        onTap: () {
+                          setState(() {
+                            _selectedSalon = salon;
+                          });
+                          Navigator.pop(context);
+                        },
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
