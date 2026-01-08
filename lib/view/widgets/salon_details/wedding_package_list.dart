@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:glow_vita_salon/controller/salon_details_controller.dart';
+import 'package:glow_vita_salon/model/service.dart';
 import 'package:glow_vita_salon/view/widgets/salon_details/customize_package_sheet.dart';
 import 'package:glow_vita_salon/widget/wedding_package_card.dart';
 
@@ -18,11 +19,31 @@ class WeddingPackageList extends StatelessWidget {
         // Calculate price dynamically if this package is selected
         double displayPrice = package.price;
         if (isSelected) {
-          final selectedServicesForPackage = controller.services
-              .where((s) => controller.isServiceSelectedForPackage(package, s))
-              .toList();
-          if (selectedServicesForPackage.isNotEmpty) {
-            displayPrice = selectedServicesForPackage.fold<double>(
+          // Build list of all selected services (package + salon)
+          final selectedServices = <Service>[];
+
+          // Check package services
+          for (final ps in package.services) {
+            if (controller.isServiceSelectedForPackage(package, ps.service)) {
+              selectedServices.add(ps.service);
+            }
+          }
+
+          // Check salon services (avoid duplicates)
+          for (final service in controller.services) {
+            if (controller.isServiceSelectedForPackage(package, service)) {
+              final isDuplicate = selectedServices.any(
+                (s) => s.name == service.name && s.category == service.category,
+              );
+              if (!isDuplicate) {
+                selectedServices.add(service);
+              }
+            }
+          }
+
+          // Calculate total price
+          if (selectedServices.isNotEmpty) {
+            displayPrice = selectedServices.fold<double>(
               0,
               (sum, s) => sum + s.price,
             );

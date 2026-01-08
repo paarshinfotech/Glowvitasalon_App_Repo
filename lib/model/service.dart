@@ -92,11 +92,18 @@ class Service {
       description: json['description'],
       discountedPrice: discountedPrice,
       gender: json['gender'],
-      homeServiceAvailable: json['homeService']?['available'] ?? false,
-      homeServiceCharges: (json['homeService']?['charges'] as num?)?.toDouble(),
-      weddingServiceAvailable: json['weddingService']?['available'] ?? false,
-      weddingServiceCharges: (json['weddingService']?['charges'] as num?)
-          ?.toDouble(),
+      homeServiceAvailable: json['homeService'] is bool
+          ? json['homeService']
+          : (json['homeService']?['available'] ?? false),
+      homeServiceCharges: json['homeService'] is Map
+          ? (json['homeService']?['charges'] as num?)?.toDouble()
+          : null,
+      weddingServiceAvailable: json['weddingService'] is bool
+          ? json['weddingService']
+          : (json['weddingService']?['available'] ?? false),
+      weddingServiceCharges: json['weddingService'] is Map
+          ? (json['weddingService']?['charges'] as num?)?.toDouble()
+          : null,
     );
   }
 
