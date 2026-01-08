@@ -14,6 +14,17 @@ class CustomizePackageSheet extends StatelessWidget {
     SalonDetailsController controller,
     WeddingPackage package,
   ) {
+    // Ensure package services are initialized in controller
+    // Only initialize if package is NOT already selected
+    if (!controller.selectedPackages.contains(package)) {
+      // Package not selected yet - initialize with default package services
+      controller.setPackageServices(
+        package,
+        package.services.map((ps) => ps.service).toList(),
+      );
+    }
+    // If package IS selected, keep existing services (preserves user's changes)
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -42,14 +53,53 @@ class CustomizePackageSheet extends StatelessWidget {
             Expanded(
               child: Consumer<SalonDetailsController>(
                 builder: (context, ctrl, child) {
-                  // Calculate price dynamically for THIS package
-                  final selectedServicesForPackage = ctrl.services
+                  // Get ALL services that are selected for this package
+                  // This includes both package services AND salon services
+
+                  // First, get package services
+                  final packageServicesList = package.services
+                      .map((ps) => ps.service)
+                      .toList();
+
+                  // Then, get salon services that are selected
+                  final selectedSalonServices = ctrl.services
                       .where(
                         (s) => ctrl.isServiceSelectedForPackage(package, s),
                       )
                       .toList();
 
-                  final currentPrice = selectedServicesForPackage.fold<double>(
+                  // Build display services list
+                  final displayServicesList = <Service>[];
+                  final addedKeys = <String>{};
+
+                  // Add selected salon services
+                  for (final service in selectedSalonServices) {
+                    final key = '${service.name}_${service.category}';
+                    displayServicesList.add(service);
+                    addedKeys.add(key);
+                  }
+
+                  // Check package services - only add if selected
+                  for (final ps in package.services) {
+                    final service = ps.service;
+                    final key = '${service.name}_${service.category}';
+
+                    // Skip if already added (from salon services)
+                    if (addedKeys.contains(key)) continue;
+
+                    // Only add if selected in controller
+                    if (ctrl.isServiceSelectedForPackage(package, service)) {
+                      displayServicesList.add(service);
+                      addedKeys.add(key);
+                    }
+                  }
+
+                  // If empty, initialize with package services (first time)
+                  final displayServices = displayServicesList.isEmpty
+                      ? packageServicesList
+                      : displayServicesList;
+
+                  final currentPrice = displayServices.fold<double>(
                     0,
                     (sum, service) => sum + service.price,
                   );
@@ -123,7 +173,7 @@ class CustomizePackageSheet extends StatelessWidget {
                                     children: [
                                       _buildHeaderChip(
                                         Icons.list,
-                                        '${selectedServicesForPackage.length} Services',
+                                        '${displayServices.length} Services',
                                       ),
                                       const SizedBox(width: 8),
                                       _buildHeaderChip(
@@ -198,6 +248,25 @@ class CustomizePackageSheet extends StatelessWidget {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF4A2C3F),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${displayServices.length}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                               const Spacer(),
                               IconButton(
                                 onPressed: () => _showEditServicesDialog(
@@ -214,8 +283,9 @@ class CustomizePackageSheet extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                      const SliverToBoxAdapter(child: SizedBox(height: 8)),
 
+                      // Simple Service List - All Services (Package + Additional)
                       SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         sliver: SliverList(
@@ -223,283 +293,88 @@ class CustomizePackageSheet extends StatelessWidget {
                             context,
                             index,
                           ) {
-                            final packageService = package.services[index];
-                            final isSelected = ctrl.isServiceSelectedForPackage(
-                              package,
-                              packageService.service,
+                            final service = displayServices[index];
+                            final isPackageService = package.services.any(
+                              (ps) => ps.service == service,
                             );
 
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? const Color(0xFF4A2C3F)
-                                        : Colors.grey.shade200,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.grey.withOpacity(0.05),
-                                      spreadRadius: 1,
-                                      blurRadius: 5,
-                                      offset: const Offset(0, 2),
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  // Bullet point
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF4A2C3F),
+                                      shape: BoxShape.circle,
                                     ),
-                                  ],
-                                ),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    onTap: packageService.isLocked
-                                        ? null
-                                        : () => ctrl
-                                              .togglePackageServiceForPackage(
-                                                package,
-                                                packageService,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Service Name and Details
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                service.name,
+                                                style: const TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.black87,
+                                                ),
                                               ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Row(
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              8,
                                             ),
-                                            child: Image.network(
-                                              packageService.service.imageUrl ??
-                                                  'https://via.placeholder.com/60',
-                                              width: 60,
-                                              height: 60,
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (
-                                                    context,
-                                                    error,
-                                                    stackTrace,
-                                                  ) => Container(
-                                                    width: 60,
-                                                    height: 60,
-                                                    color: Colors.grey[200],
-                                                    child: Icon(
-                                                      Icons.spa,
-                                                      color: Colors.grey[400],
+                                            if (!isPackageService)
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
                                                     ),
-                                                  ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  packageService.service.name,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  '${packageService.service.duration} • ₹${packageService.service.price.toStringAsFixed(0)}',
-                                                  style: TextStyle(
-                                                    color: Colors.grey[600],
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          if (!packageService.isLocked)
-                                            Transform.scale(
-                                              scale: 1.1,
-                                              child: Checkbox(
-                                                value: isSelected,
-                                                activeColor: const Color(
-                                                  0xFF4A2C3F,
-                                                ),
-                                                shape: RoundedRectangleBorder(
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green[50],
                                                   borderRadius:
                                                       BorderRadius.circular(4),
+                                                  border: Border.all(
+                                                    color: Colors.green,
+                                                    width: 1,
+                                                  ),
                                                 ),
-                                                onChanged: (val) => ctrl
-                                                    .togglePackageServiceForPackage(
-                                                      package,
-                                                      packageService,
-                                                    ),
+                                                child: const Text(
+                                                  'Added',
+                                                  style: TextStyle(
+                                                    color: Colors.green,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
                                               ),
-                                            )
-                                          else
-                                            const Padding(
-                                              padding: EdgeInsets.all(12.0),
-                                              child: Icon(
-                                                Icons.lock_outline,
-                                                color: Colors.grey,
-                                                size: 20,
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          }, childCount: package.services.length),
-                        ),
-                      ),
-
-                      // Additional Services Section (if any)
-                      if (ctrl.services.any(
-                        (s) =>
-                            ctrl.isServiceSelectedForPackage(package, s) &&
-                            !package.services.any((ps) => ps.service == s),
-                      )) ...[
-                        const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                            ),
-                            child: Text(
-                              'Additional Services',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SliverToBoxAdapter(child: SizedBox(height: 8)),
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                              (context, index) {
-                                final extraServices = ctrl.services
-                                    .where(
-                                      (s) =>
-                                          ctrl.isServiceSelectedForPackage(
-                                            package,
-                                            s,
-                                          ) &&
-                                          !package.services.any(
-                                            (ps) => ps.service == s,
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${service.duration} • ₹${service.price.toStringAsFixed(0)}',
+                                          style: TextStyle(
+                                            color: Colors.grey[500],
+                                            fontSize: 12,
                                           ),
-                                    )
-                                    .toList();
-                                final service = extraServices[index];
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.grey.shade200,
-                                      ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.grey.withOpacity(0.05),
-                                          spreadRadius: 1,
-                                          blurRadius: 5,
-                                          offset: const Offset(0, 2),
                                         ),
                                       ],
                                     ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Row(
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            child: Image.network(
-                                              service.imageUrl ??
-                                                  'https://via.placeholder.com/60',
-                                              width: 60,
-                                              height: 60,
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (
-                                                    context,
-                                                    error,
-                                                    stackTrace,
-                                                  ) => Container(
-                                                    width: 60,
-                                                    height: 60,
-                                                    color: Colors.grey[200],
-                                                    child: Icon(
-                                                      Icons.spa,
-                                                      color: Colors.grey[400],
-                                                    ),
-                                                  ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  service.name,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  '${service.duration} • ₹${service.price.toStringAsFixed(0)}',
-                                                  style: TextStyle(
-                                                    color: Colors.grey[600],
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF4A2C3F),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: const Icon(
-                                              Icons.check,
-                                              color: Colors.white,
-                                              size: 16,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
                                   ),
-                                );
-                              },
-                              childCount: ctrl.services
-                                  .where(
-                                    (s) =>
-                                        ctrl.isServiceSelectedForPackage(
-                                          package,
-                                          s,
-                                        ) &&
-                                        !package.services.any(
-                                          (ps) => ps.service == s,
-                                        ),
-                                  )
-                                  .length,
-                            ),
-                          ),
+                                ],
+                              ),
+                            );
+                          }, childCount: displayServices.length),
                         ),
-                      ],
+                      ),
+
                       const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
                       // Expert Staff Members
@@ -593,7 +468,7 @@ class CustomizePackageSheet extends StatelessWidget {
                       ),
                       const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                      // Pricing Card
+                      // Pricing Card with Service Breakdown
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -622,84 +497,151 @@ class CustomizePackageSheet extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 24),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Original Price:',
-                                      style: TextStyle(
-                                        color: Colors.grey[700],
-                                        fontSize: 16,
+                                const SizedBox(height: 16),
+
+                                // Service Breakdown
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'Services (${displayServices.length})',
+                                            style: TextStyle(
+                                              color: Colors.grey[700],
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          Text(
+                                            'Price',
+                                            style: TextStyle(
+                                              color: Colors.grey[700],
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                    Text(
-                                      '₹${(currentPrice * 1.2).toStringAsFixed(0)}', // Dummy markdown for visuals
-                                      style: TextStyle(
-                                        color: Colors.grey[500],
-                                        fontSize: 16,
-                                        decoration: TextDecoration.lineThrough,
-                                      ),
-                                    ),
-                                  ],
+                                      const Divider(height: 16),
+                                      ...displayServices.map((service) {
+                                        final isPackageService = package
+                                            .services
+                                            .any((ps) => ps.service == service);
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 8,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Row(
+                                                  children: [
+                                                    Container(
+                                                      width: 4,
+                                                      height: 4,
+                                                      decoration: BoxDecoration(
+                                                        color: isPackageService
+                                                            ? const Color(
+                                                                0xFF4A2C3F,
+                                                              )
+                                                            : Colors.green,
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Text(
+                                                        service.name,
+                                                        style: TextStyle(
+                                                          fontSize: 13,
+                                                          color:
+                                                              Colors.grey[800],
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Text(
+                                                '₹${service.price.toStringAsFixed(0)}',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.grey[800],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'You Save:',
-                                      style: TextStyle(
-                                        color: Colors.grey[700],
-                                        fontSize: 16,
-                                      ),
+
+                                const SizedBox(height: 16),
+
+                                // Total Price
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.red.shade50,
+                                        Colors.pink.shade50,
+                                      ],
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.red.shade200,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Total Package Price',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            'All services included',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.black54,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green[100],
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: const Text(
-                                        '20% OFF',
-                                        style: TextStyle(
-                                          color: Colors.green,
+                                      Text(
+                                        '₹${currentPrice.toStringAsFixed(0)}',
+                                        style: const TextStyle(
+                                          fontSize: 32,
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 12,
+                                          color: Colors.redAccent,
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 16),
-                                  child: Divider(color: Colors.redAccent),
-                                ),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    const Text(
-                                      'Final Price:',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      '₹${currentPrice.toStringAsFixed(0)}',
-                                      style: const TextStyle(
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.redAccent,
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -759,13 +701,13 @@ class CustomizePackageSheet extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                Icons.favorite_border,
+                                Icons.check_circle_outline,
                                 color: Colors.white,
                                 size: 20,
                               ),
                               SizedBox(width: 8),
                               Text(
-                                'Select Package',
+                                'Confirm',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
@@ -835,38 +777,88 @@ class CustomizePackageSheet extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Edit Services',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Add Services',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${package.services.length} services included • ${controller.services.length} available',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                     ),
                   ],
                 ),
               ),
               const Divider(height: 1),
               Expanded(
-                child: _EditServicesList(
-                  allServices: controller.services,
-                  initialSelected: Set.from(
-                    controller.services.where(
-                      (s) => controller.isServiceSelectedForPackage(package, s),
-                    ),
-                  ),
-                  onSave: (newSelection) {
-                    controller.updateSelectedServicesForPackage(
-                      package,
-                      newSelection,
+                child: Builder(
+                  builder: (context) {
+                    // Get package services
+                    final packageServices = package.services
+                        .map((ps) => ps.service)
+                        .toList();
+
+                    // Merge package services with salon services
+                    // Use a Set to avoid duplicates, then convert to List
+                    final allAvailableServices = {
+                      ...packageServices,
+                      ...controller.services,
+                    }.toList();
+
+                    // Build initial selection from what's actually selected in controller
+                    // Do NOT automatically select all package services
+                    final initialSelected = <Service>{};
+
+                    // Check package services - only add if selected in controller
+                    for (final ps in package.services) {
+                      if (controller.isServiceSelectedForPackage(
+                        package,
+                        ps.service,
+                      )) {
+                        initialSelected.add(ps.service);
+                      }
+                    }
+
+                    // Add salon services that are selected in controller
+                    for (final service in controller.services) {
+                      if (controller.isServiceSelectedForPackage(
+                        package,
+                        service,
+                      )) {
+                        initialSelected.add(service);
+                      }
+                    }
+
+                    return _EditServicesList(
+                      package: package,
+                      allServices: allAvailableServices,
+                      initialSelected: initialSelected,
+                      onSave: (newSelection) {
+                        // Debug: Print what we're saving
+                        print('Saving ${newSelection.length} services:');
+                        for (final service in newSelection) {
+                          print('  - ${service.name}');
+                        }
+
+                        controller.setPackageServices(package, newSelection);
+                        Navigator.pop(context);
+                      },
                     );
-                    Navigator.pop(context);
                   },
                 ),
               ),
@@ -879,11 +871,13 @@ class CustomizePackageSheet extends StatelessWidget {
 }
 
 class _EditServicesList extends StatefulWidget {
+  final WeddingPackage package;
   final List<Service> allServices;
   final Set<Service> initialSelected;
   final Function(List<Service>) onSave;
 
   const _EditServicesList({
+    required this.package,
     required this.allServices,
     required this.initialSelected,
     required this.onSave,
@@ -899,11 +893,16 @@ class _EditServicesListState extends State<_EditServicesList> {
   @override
   void initState() {
     super.initState();
-    _selected = widget.initialSelected;
+    _selected = Set.from(widget.initialSelected); // Create a copy
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get list of original package services for visual indication
+    final packageServices = widget.package.services
+        .map((ps) => ps.service)
+        .toSet();
+
     return Column(
       children: [
         Expanded(
@@ -914,14 +913,19 @@ class _EditServicesListState extends State<_EditServicesList> {
             itemBuilder: (context, index) {
               final service = widget.allServices[index];
               final isSelected = _selected.contains(service);
+              final isPackageService = packageServices.contains(service);
+
               return GestureDetector(
                 onTap: () {
                   setState(() {
                     if (isSelected) {
+                      print('Removing: ${service.name}');
                       _selected.remove(service);
                     } else {
+                      print('Adding: ${service.name}');
                       _selected.add(service);
                     }
+                    print('Total selected: ${_selected.length}');
                   });
                 },
                 child: Container(
@@ -982,15 +986,41 @@ class _EditServicesListState extends State<_EditServicesList> {
                             ],
                           ),
                         ),
+                        // Show package badge if it's a package service
+                        if (isPackageService)
+                          Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4A2C3F).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: const Color(0xFF4A2C3F),
+                                width: 1,
+                              ),
+                            ),
+                            child: const Text(
+                              'Package',
+                              style: TextStyle(
+                                color: Color(0xFF4A2C3F),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        // Show selection icon
                         if (isSelected)
                           const Icon(
                             Icons.check_circle,
                             color: Color(0xFF4A2C3F),
                           )
                         else
-                          const Icon(
+                          Icon(
                             Icons.radio_button_unchecked,
-                            color: Colors.grey,
+                            color: Colors.grey[400],
                           ),
                       ],
                     ),
@@ -1003,7 +1033,13 @@ class _EditServicesListState extends State<_EditServicesList> {
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: ElevatedButton(
-            onPressed: () => widget.onSave(_selected.toList()),
+            onPressed: () {
+              print('_selected contains ${_selected.length} services:');
+              for (final service in _selected) {
+                print('  - ${service.name} (${service.hashCode})');
+              }
+              widget.onSave(_selected.toList());
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4A2C3F),
               minimumSize: const Size(double.infinity, 50),

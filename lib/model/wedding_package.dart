@@ -1,13 +1,11 @@
 import 'package:glow_vita_salon/model/service.dart';
+import 'package:glow_vita_salon/model/specialist.dart';
 
 class PackageService {
   final Service service;
   final bool isLocked;
 
-  PackageService({
-    required this.service,
-    this.isLocked = false,
-  });
+  PackageService({required this.service, this.isLocked = false});
 }
 
 class WeddingPackage {
@@ -17,6 +15,7 @@ class WeddingPackage {
   final double price;
   final String? imageUrl;
   final List<PackageService> services;
+  final List<Specialist> staff;
 
   WeddingPackage({
     required this.name,
@@ -25,5 +24,6 @@ class WeddingPackage {
     required this.price,
     this.imageUrl,
     required this.services,
+    this.staff = const [],
   });
 }

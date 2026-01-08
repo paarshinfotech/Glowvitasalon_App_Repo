@@ -140,7 +140,7 @@ class WeddingPackageCard extends StatelessWidget {
                                   ),
                                 ),
                                 child: const Text(
-                                  'View',
+                                  'Show Details',
                                   style: TextStyle(
                                     color: Color(0xFF4A2C3F),
                                     fontSize: 12,

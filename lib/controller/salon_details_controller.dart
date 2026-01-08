@@ -42,6 +42,7 @@ class SalonDetailsController extends ChangeNotifier {
 
     // Fetch fresh details
     _fetchSalonDetails();
+    _initMockWeddingPackages();
     _startAutoSlide();
   }
 
@@ -185,6 +186,99 @@ class SalonDetailsController extends ChangeNotifier {
   }
 
   final List<WeddingPackage> _weddingPackages = [];
+
+  void _initMockWeddingPackages() {
+    _weddingPackages.clear();
+    _weddingPackages.addAll([
+      WeddingPackage(
+        name: 'Bridal Glow Package',
+        description:
+            'Complete bridal makeover including facial, hair spa, and makeup.',
+        duration: '4 Hours',
+        price: 15000,
+        imageUrl: 'https://i.pravatar.cc/300?img=1', // Placeholder
+        services: [
+          PackageService(
+            service: Service(
+              id: 's1',
+              name: 'Bridal Makeover',
+              category: 'Makeup',
+              price: 8000,
+              duration: '2 Hours',
+              imageUrl: 'https://i.pravatar.cc/150?img=5',
+              weddingServiceAvailable: true,
+              homeServiceAvailable: true,
+            ),
+            isLocked: true,
+          ),
+          PackageService(
+            service: Service(
+              id: 's2',
+              name: 'Hair Styling',
+              category: 'Hair',
+              price: 3000,
+              duration: '1 Hour',
+              imageUrl: 'https://i.pravatar.cc/150?img=9',
+              weddingServiceAvailable: true,
+              homeServiceAvailable: true,
+            ),
+            isLocked: false,
+          ),
+          PackageService(
+            service: Service(
+              id: 's3',
+              name: 'Facial & Clean-up',
+              category: 'Skincare',
+              price: 4000,
+              duration: '1 Hour',
+              imageUrl: 'https://i.pravatar.cc/150?img=11',
+              weddingServiceAvailable: true,
+              homeServiceAvailable: true,
+            ),
+            isLocked: false,
+          ),
+        ],
+        staff: [_specialists[0], _specialists[1]],
+      ),
+      WeddingPackage(
+        name: 'Engagement Radiance',
+        description: 'Perfect look for your ring ceremony.',
+        duration: '3 Hours',
+        price: 8000,
+        imageUrl: 'https://i.pravatar.cc/300?img=5',
+        services: [
+          PackageService(
+            service: Service(
+              id: 's4',
+              name: 'Engagement Makeup',
+              category: 'Makeup',
+              price: 5000,
+              duration: '1.5 Hours',
+              imageUrl: 'https://i.pravatar.cc/150?img=5',
+              weddingServiceAvailable: true,
+              homeServiceAvailable: true,
+            ),
+            isLocked: true,
+          ),
+          PackageService(
+            service: Service(
+              id: 's5',
+              name: 'Premium Hairdo',
+              category: 'Hair',
+              price: 3000,
+              duration: '1.5 Hours',
+              imageUrl: 'https://i.pravatar.cc/150?img=3',
+              weddingServiceAvailable: true,
+              homeServiceAvailable: true,
+            ),
+            isLocked: false,
+          ),
+        ],
+        staff: [_specialists[2]],
+      ),
+    ]);
+  }
+
   List<WeddingPackage> get weddingPackages => _weddingPackages;
 
   List<WeddingPackage> get allWeddingPackages {
@@ -349,14 +443,33 @@ class SalonDetailsController extends ChangeNotifier {
     }
   }
 
-  void updateSelectedServicesForPackage(
-    WeddingPackage package,
-    List<Service> services,
-  ) {
-    if (_weddingPackageServices.containsKey(package)) {
-      _weddingPackageServices[package] = List.from(services);
-      notifyListeners();
+  void setPackageServices(WeddingPackage package, List<Service> services) {
+    // Add or update
+    _weddingPackageServices[package] = List.from(services);
+    notifyListeners();
+  }
+
+  String calculateTotalDuration(List<Service> services) {
+    int totalMinutes = 0;
+    for (final service in services) {
+      final durationLower = service.duration.toLowerCase();
+      if (durationLower.contains('hour')) {
+        final hours = double.tryParse(durationLower.split(' ')[0]) ?? 0;
+        totalMinutes += (hours * 60).round();
+      } else if (durationLower.contains('min')) {
+        final mins = int.tryParse(durationLower.split(' ')[0]) ?? 0;
+        totalMinutes += mins;
+      }
     }
+
+    if (totalMinutes == 0) return '0 Mins';
+
+    final hours = totalMinutes ~/ 60;
+    final mins = totalMinutes % 60;
+
+    if (hours > 0 && mins > 0) return '$hours Hours $mins Mins';
+    if (hours > 0) return '$hours Hours';
+    return '$mins Mins';
   }
 
   void toggleService(Service service) {

@@ -138,10 +138,17 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildSuggestions(SalonListController controller) {
-    // defaults if API returns empty or fails
-    final List<String> categories = controller.categories.isNotEmpty
-        ? controller.categories
-        : ["Haircut", "Facial", "Manicure", "Massage", "Bridal"];
+    if (controller.isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF4A2C3F)),
+      );
+    }
+
+    if (controller.categories.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final List<String> categories = controller.categories;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
