@@ -15,6 +15,10 @@ class AuthController {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_isLoggedInKey, true);
     await prefs.setString(_tokenKey, token);
+    await prefs.setString(
+      'cookie',
+      token,
+    ); // Saving as cookie-like entry as requested
     await prefs.setString(_firstNameKey, firstName);
     await prefs.setString(_lastNameKey, lastName);
   }

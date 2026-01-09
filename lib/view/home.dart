@@ -49,11 +49,28 @@ class _HomeState extends State<Home> {
                           },
                           child: Row(
                             children: [
-                              const CircleAvatar(
+                              CircleAvatar(
                                 radius: 20,
-                                backgroundImage: NetworkImage(
-                                  'https://i.pravatar.cc/150?img=5',
-                                ), // Placeholder or use user data
+                                backgroundColor:
+                                    controller.profileImageUrl != null
+                                    ? Colors.transparent
+                                    : const Color(0xFF4A2C3F),
+                                backgroundImage:
+                                    controller.profileImageUrl != null
+                                    ? NetworkImage(controller.profileImageUrl!)
+                                    : null,
+                                child: controller.profileImageUrl == null
+                                    ? Text(
+                                        controller.userName.isNotEmpty
+                                            ? controller.userName[0]
+                                                  .toUpperCase()
+                                            : "G",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : null,
                               ),
                               const SizedBox(width: 12),
                               Text(

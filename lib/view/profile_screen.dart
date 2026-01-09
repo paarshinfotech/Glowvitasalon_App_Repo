@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:glow_vita_salon/controller/auth_controller.dart';
 import 'package:glow_vita_salon/routes/app_routes.dart';
 import 'package:glow_vita_salon/services/api_service.dart';
-import 'package:glow_vita_salon/view/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -36,12 +36,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    final token = await AuthController.getToken();
+    // Check Token from standard storage
+    String? token = await AuthController.getToken();
+
+    // Check "Cookie" storage (as requested by user logic)
+    if (token == null) {
+      final prefs = await SharedPreferences.getInstance();
+      token = prefs.getString('cookie');
+    }
+
     if (token == null) {
       if (!mounted) return;
+      print(
+        "DEBUG: No token found in SharedPreferences or 'cookie' key. Redirecting to login.",
+      );
       Navigator.pushReplacementNamed(context, AppRoutes.login);
       return;
     }
+
+    // Mask check for debugging
+    print("DEBUG: Fetching profile with token: ${token.substring(0, 10)}...");
 
     try {
       final apiService = ApiService();
@@ -80,14 +94,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       print("Error fetching profile: $e");
+
       if (mounted) {
         setState(() {
           isLoading = false;
         });
-        // We could redirect to login here if 401, but maybe just show error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed to load profile details: ${e.toString()}"),
+
+        // Show detailed error dialog for debugging
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Profile Error"),
+            content: SingleChildScrollView(child: Text(e.toString())),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK"),
+              ),
+              // Optional: Keep logout button handy
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context); // Close dialog first
+                  _logout();
+                },
+                child: const Text("Logout"),
+              ),
+            ],
           ),
         );
       }
@@ -146,11 +178,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: CircleAvatar(
                         radius: 50,
+                        backgroundColor: profileImageUrl != null
+                            ? Colors.transparent
+                            : const Color(0xFF4A2C3F),
                         backgroundImage: profileImageUrl != null
                             ? NetworkImage(profileImageUrl!)
-                            : const NetworkImage(
-                                'https://i.pravatar.cc/150?img=5',
-                              ),
+                            : null,
+                        child: profileImageUrl == null
+                            ? Text(
+                                firstName.isNotEmpty
+                                    ? firstName[0].toUpperCase()
+                                    : "U",
+                                style: const TextStyle(
+                                  fontSize: 40,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : null,
                       ),
                     ),
                     Positioned(

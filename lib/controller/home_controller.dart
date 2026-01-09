@@ -52,6 +52,7 @@ class HomeController extends ChangeNotifier {
   }
 
   String userName = "Guest";
+  String? profileImageUrl;
 
   Future<void> _fetchData() async {
     try {
@@ -90,6 +91,9 @@ class HomeController extends ChangeNotifier {
 
           if (fullName.isNotEmpty && fullName != userName) {
             userName = fullName;
+            // Extract profile image if available
+            profileImageUrl =
+                user['avatar'] ?? user['profileImage'] ?? user['image'];
             notifyListeners();
           }
         } catch (e) {
