@@ -4,6 +4,7 @@ import 'package:glow_vita_salon/model/product_detail.dart';
 import '../model/product.dart';
 import '../model/register_request.dart';
 import '../model/vendor.dart';
+import '../model/offer.dart';
 import '../model/category.dart';
 import 'package:http/http.dart' as http;
 
@@ -192,6 +193,26 @@ class ApiService {
       throw Exception('Unexpected response format');
     } else {
       throw Exception('Failed to load vendor details');
+    }
+  }
+
+  static Future<List<Offer>> getVendorOffers(String vendorId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/offers?businessId=$vendorId'),
+    );
+
+    print('Offers API Response: ${response.statusCode} - ${response.body}');
+
+    if (response.statusCode == 200) {
+      final jsonData = json.decode(response.body);
+      if (jsonData['success'] == true && jsonData['data'] != null) {
+        final List list = jsonData['data'];
+        return list.map((e) => Offer.fromJson(e)).toList();
+      }
+      return [];
+    } else {
+      print('Failed to load offers: ${response.statusCode}');
+      return []; // Return empty on error to avoid breaking UI
     }
   }
 

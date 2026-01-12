@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:glow_vita_salon/model/product.dart';
+import 'package:glow_vita_salon/model/offer.dart';
 import 'package:glow_vita_salon/model/salon.dart';
 import 'package:glow_vita_salon/model/service.dart';
 import 'package:glow_vita_salon/model/specialist.dart';
@@ -110,6 +111,16 @@ class SalonDetailsController extends ChangeNotifier {
   PaymentMethod? _paymentMethod;
   PaymentMethod? get paymentMethod => _paymentMethod;
 
+  // Offers
+  List<Offer> _availableOffers = [];
+  List<Offer> get availableOffers => _availableOffers;
+
+  Offer? _appliedOffer;
+  Offer? get appliedOffer => _appliedOffer;
+
+  String? _couponError;
+  String? get couponError => _couponError;
+
   // Address fields for wedding/home service
   String? _userAddress;
   String? get userAddress => _userAddress;
@@ -154,6 +165,10 @@ class SalonDetailsController extends ChangeNotifier {
       print(
         'Fetched vendor: ${vendor.businessName}, Gallery count: ${vendor.gallery.length}',
       );
+
+      // Fetch offers
+      _availableOffers = await ApiService.getVendorOffers(salon.id);
+      print('Fetched ${_availableOffers.length} offers for this salon');
 
       _fetchedSalon = Salon.fromVendor(vendor);
 
@@ -548,6 +563,43 @@ class SalonDetailsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void applyCoupon(String code) {
+    _couponError = null;
+    _appliedOffer = null; // Reset first
+
+    if (code.isEmpty) {
+      notifyListeners();
+      return;
+    }
+
+    final offerIndex = _availableOffers.indexWhere((o) => o.code == code);
+
+    if (offerIndex == -1) {
+      _couponError = 'Invalid coupon code';
+      notifyListeners();
+      return;
+    }
+
+    final offer = _availableOffers[offerIndex];
+
+    // Validate expiry
+    if (offer.expires != null && DateTime.now().isAfter(offer.expires!)) {
+      _couponError = 'Coupon expired';
+      notifyListeners();
+      return;
+    }
+
+    // You could check applicableServices if needed, but for now applying broadly or as per requirement
+    _appliedOffer = offer;
+    notifyListeners();
+  }
+
+  void removeCoupon() {
+    _appliedOffer = null;
+    _couponError = null;
+    notifyListeners();
+  }
+
   double get totalAmount {
     final services = selectedServices;
     final subtotal = services.fold<double>(
@@ -563,7 +615,28 @@ class SalonDetailsController extends ChangeNotifier {
 
     const platformFee = 20.0;
     const gst = 2.50;
-    return subtotal + platformFee + gst;
+    var total = subtotal + platformFee + gst;
+
+    if (_appliedOffer != null) {
+      double discount = 0;
+      if (_appliedOffer!.type.toLowerCase() == 'percentage') {
+        discount = (subtotal * _appliedOffer!.value) / 100;
+      } else {
+        discount = _appliedOffer!.value;
+      }
+      total -= discount;
+    }
+
+    return total < 0 ? 0 : total;
+  }
+
+  double get discountAmount {
+    if (_appliedOffer == null) return 0.0;
+    if (_appliedOffer!.type.toLowerCase() == 'percentage') {
+      return (subtotal * _appliedOffer!.value) / 100;
+    } else {
+      return _appliedOffer!.value;
+    }
   }
 
   double get subtotal {
@@ -694,6 +767,8 @@ class SalonDetailsController extends ChangeNotifier {
     _selectedServiceCategory = 'All Categories';
     _bookingPreference = BookingPreference.visitSalon;
     _numberOfPeople = 1;
+    _appliedOffer = null;
+    _couponError = null;
     notifyListeners();
   }
 }
