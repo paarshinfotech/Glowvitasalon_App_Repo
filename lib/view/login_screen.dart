@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen>
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(50),
                   bottomRight: Radius.circular(50),
-                )
+                ),
               ),
             ),
             SafeArea(
@@ -73,18 +73,23 @@ class _LoginScreenState extends State<LoginScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(height: screenHeight * 0.1), // Responsive top space
+                    SizedBox(
+                      height: screenHeight * 0.1,
+                    ), // Responsive top space
                     // White container
                     Container(
                       height: 520,
                       margin: const EdgeInsets.symmetric(horizontal: 24),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 32,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(20),
-                            topRight: Radius.circular(20),
-                          )
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
                       ),
                       child: Form(
                         key: _formKey,
@@ -92,15 +97,15 @@ class _LoginScreenState extends State<LoginScreen>
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             const SizedBox(height: 20),
-        
+
                             // Logo
                             Image.asset(
                               'assets/images/GlowVita Final Logo.png', // Make sure you have this image in your assets
                               height: 80,
                             ),
-        
+
                             const SizedBox(height: 30),
-        
+
                             // Title
                             const Text(
                               'Sign in to your account',
@@ -111,19 +116,19 @@ class _LoginScreenState extends State<LoginScreen>
                                 color: Colors.black87,
                               ),
                             ),
-        
+
                             const SizedBox(height: 20),
-        
+
                             // Email
                             _buildEmailField(),
-        
+
                             const SizedBox(height: 16),
-        
+
                             // Password
                             _buildPasswordField(),
-        
+
                             const SizedBox(height: 8),
-        
+
                             // Forgot password
                             Align(
                               alignment: Alignment.centerRight,
@@ -140,9 +145,9 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                             ),
-        
+
                             const SizedBox(height: 8),
-        
+
                             // Error message
                             if (_controller.errorMessage != null)
                               Padding(
@@ -156,27 +161,31 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                 ),
                               ),
-        
+
                             // Sign in button
                             ElevatedButton(
                               onPressed: _controller.isLoading ? null : _login,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF4A2C3F),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               child: _controller.isLoading
-                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
                                   : const Text(
-                                'Sign in',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                                      'Sign in',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                             ),
                           ],
                         ),
@@ -188,13 +197,16 @@ class _LoginScreenState extends State<LoginScreen>
                         Expanded(child: Divider(color: Colors.grey)),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 8),
-                          child: Text('or continue with', style: TextStyle(color: Colors.grey)),
+                          child: Text(
+                            'or continue with',
+                            style: TextStyle(color: Colors.grey),
+                          ),
                         ),
                         Expanded(child: Divider(color: Colors.grey)),
                       ],
                     ),
                     const SizedBox(height: 15),
-        
+
                     // Social Logins
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -206,9 +218,9 @@ class _LoginScreenState extends State<LoginScreen>
                         _buildSocialButton(FontAwesomeIcons.twitter),
                       ],
                     ),
-                     const SizedBox(height: 30),
-        
-                     // Register redirect
+                    const SizedBox(height: 30),
+
+                    // Register redirect
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -233,7 +245,6 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ],
                     ),
-        
                   ],
                 ),
               ),
@@ -254,7 +265,10 @@ class _LoginScreenState extends State<LoginScreen>
           onChanged: _controller.setEmail,
           validator: _controller.validateEmail,
           decoration: InputDecoration(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
             labelText: "Email Address",
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
@@ -278,7 +292,10 @@ class _LoginScreenState extends State<LoginScreen>
       validator: _controller.validatePassword,
       decoration: InputDecoration(
         labelText: 'Enter your password',
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -290,7 +307,9 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         suffixIcon: IconButton(
           icon: Icon(
-            _isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            _isPasswordVisible
+                ? Icons.visibility_off_outlined
+                : Icons.visibility_outlined,
             color: Colors.grey.shade400,
           ),
           onPressed: () {
@@ -307,9 +326,10 @@ class _LoginScreenState extends State<LoginScreen>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(8),
-          color: Colors.white),
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+      ),
       child: FaIcon(icon, size: 20, color: const Color(0xFF4A2C3F)),
     );
   }

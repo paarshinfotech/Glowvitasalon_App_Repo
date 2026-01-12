@@ -1,6 +1,11 @@
-import 'package:flutter/material.dart';
-
-enum NotificationType { appointment, review, bookingConfirmed, deal, offer, tips }
+enum NotificationType {
+  appointment,
+  review,
+  bookingConfirmed,
+  deal,
+  offer,
+  tips,
+}
 
 class NotificationModel {
   final NotificationType type;

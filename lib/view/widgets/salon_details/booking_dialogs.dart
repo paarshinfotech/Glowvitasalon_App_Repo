@@ -755,72 +755,141 @@ class _CouponSectionState extends State<_CouponSection> {
             ),
           )
         else
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      decoration: InputDecoration(
-                        hintText: 'Enter Coupon Code',
-                        errorText: c.couponError,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                        ),
-                      ),
+              Expanded(
+                child: TextField(
+                  controller: _textController,
+                  readOnly: true,
+                  onTap: () {
+                    _showCouponList(context, c);
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Select Coupon Code',
+                    errorText: c.couponError,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: () {
-                      c.applyCoupon(_textController.text.trim());
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A2C3F),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 14,
-                      ),
-                    ),
-                    child: const Text('Apply'),
-                  ),
-                ],
-              ),
-
-              // Available Offers List (Hint) - Populate TextField on Tap
-              if (c.availableOffers.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Wrap(
-                    spacing: 8,
-                    children: c.availableOffers.map((offer) {
-                      return ActionChip(
-                        label: Text(offer.code),
-                        backgroundColor: Colors.orange.withOpacity(0.1),
-                        labelStyle: const TextStyle(
-                          color: Colors.orange,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        onPressed: () {
-                          // Populate text field instead of auto-applying
-                          _textController.text = offer.code;
-                        },
-                      );
-                    }).toList(),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    suffixIcon: const Icon(Icons.keyboard_arrow_down),
                   ),
                 ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: () {
+                  if (_textController.text.isNotEmpty) {
+                    c.applyCoupon(_textController.text.trim());
+                  } else {
+                    _showCouponList(context, c);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A2C3F),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
+                ),
+                child: const Text('Apply'),
+              ),
             ],
           ),
       ],
+    );
+  }
+
+  void _showCouponList(BuildContext context, SalonDetailsController c) {
+    if (c.availableOffers.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No coupons available')));
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Available Coupons',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: c.availableOffers.length,
+                  separatorBuilder: (_, __) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final offer = c.availableOffers[index];
+                    final String valueText = offer.type == 'percentage'
+                        ? '${offer.value}% OFF'
+                        : '₹${offer.value} OFF';
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        offer.code,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        valueText,
+                        style: TextStyle(color: Colors.green[700]),
+                      ),
+                      trailing: ElevatedButton(
+                        onPressed: () {
+                          _textController.text = offer.code;
+                          c.applyCoupon(offer.code);
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4A2C3F),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                        ),
+                        child: const Text("Apply"),
+                      ),
+                      onTap: () {
+                        _textController.text = offer.code;
+                        c.applyCoupon(offer.code);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
