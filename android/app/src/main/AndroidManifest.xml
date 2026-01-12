@@ -5,11 +5,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:label="glow_vita_salon"
+        android:label="GlowVita Salons"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         
-        <!-- THE API KEY MUST BE PLACED INSIDE THE APPLICATION TAG -->
         <meta-data android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBS8jy1qJHMoQeT9jyH4dtyxM_x8uKLxuY"/>
 

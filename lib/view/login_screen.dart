@@ -95,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen>
         
                             // Logo
                             Image.asset(
-                              'assets/logo.png', // Make sure you have this image in your assets
+                              'assets/images/GlowVita Final Logo.png', // Make sure you have this image in your assets
                               height: 80,
                             ),
         

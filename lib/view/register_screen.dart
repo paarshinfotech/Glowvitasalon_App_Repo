@@ -95,7 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             const SizedBox(height: 10),
-                            Image.asset('assets/logo.png', height: 70),
+                            Image.asset('assets/images/GlowVita Final Logo.png', height: 70),
                             const SizedBox(height: 8),
                             const Text(
                               'Sign up to your account',

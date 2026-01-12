@@ -15,7 +15,7 @@ import '../view/search_screen.dart';
 
 class AppRoutes {
   static const String home = '/home';
-  static const String login = '/'; // Login is now the initial route
+  static const String login = '/login'; // Login route
   static const String salonDetails = '/salon-details';
   static const String booking = '/booking';
   static const String productDetails = '/product-details';

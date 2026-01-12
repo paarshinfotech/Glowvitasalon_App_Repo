@@ -13,6 +13,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool isLoading = true;
+
   String firstName = "";
   String lastName = "";
   String email = "";
@@ -67,6 +68,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (mounted) {
         setState(() {
+          // isLoggedIn = true; // Removed locally managed state since we redirect otherwise
           String fullName = userData['name'] ?? userData['firstName'] ?? "User";
 
           if (userData['firstName'] != null) {
@@ -98,30 +100,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted) {
         setState(() {
           isLoading = false;
+          // Decide if error means logged out or just network error.
+          // For now, keep as is, but maybe user wants retry?
+          // If 401, we should probably set isLoggedIn = false.
+          if (e.toString().contains("401")) {
+            AuthController.logout();
+          }
         });
 
-        // Show detailed error dialog for debugging
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("Profile Error"),
-            content: SingleChildScrollView(child: Text(e.toString())),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("OK"),
-              ),
-              // Optional: Keep logout button handy
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context); // Close dialog first
-                  _logout();
-                },
-                child: const Text("Logout"),
-              ),
-            ],
-          ),
-        );
+        if (isLoggedIn) {
+          // Show detailed error dialog for debugging only if we think we are logged in
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Profile Error"),
+              content: SingleChildScrollView(child: Text(e.toString())),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("OK"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog first
+                    _logout();
+                  },
+                  child: const Text("Logout"),
+                ),
+              ],
+            ),
+          );
+        }
       }
     }
   }
