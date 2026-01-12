@@ -115,6 +115,11 @@ class CustomizePackageSheet extends StatelessWidget {
                     (sum, service) => sum + service.price,
                   );
 
+                  final totalDuration = ctrl.calculateTotalDuration(
+                    displayServices,
+                    bufferMinutes: package.bufferTimeMinutes,
+                  );
+
                   return CustomScrollView(
                     controller: scrollController,
                     slivers: [
@@ -189,7 +194,7 @@ class CustomizePackageSheet extends StatelessWidget {
                                       const SizedBox(width: 8),
                                       _buildHeaderChip(
                                         Icons.access_time,
-                                        package.duration,
+                                        totalDuration,
                                       ),
                                       const SizedBox(width: 8),
                                       _buildHeaderChip(
@@ -597,6 +602,56 @@ class CustomizePackageSheet extends StatelessWidget {
                                           ),
                                         );
                                       }).toList(),
+
+                                      // Buffer Time Display
+                                      if (package.bufferTimeMinutes > 0)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 8,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Row(
+                                                  children: [
+                                                    Container(
+                                                      width: 4,
+                                                      height: 4,
+                                                      decoration:
+                                                          const BoxDecoration(
+                                                            color:
+                                                                Colors.orange,
+                                                            shape:
+                                                                BoxShape.circle,
+                                                          ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Text(
+                                                        "Travel & Setup Time",
+                                                        style: TextStyle(
+                                                          fontSize: 13,
+                                                          color:
+                                                              Colors.grey[800],
+                                                          fontStyle:
+                                                              FontStyle.italic,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Text(
+                                                "${package.bufferTimeMinutes} mins",
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),

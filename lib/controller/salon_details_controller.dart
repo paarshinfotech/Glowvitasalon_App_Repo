@@ -239,6 +239,7 @@ class SalonDetailsController extends ChangeNotifier {
           ),
         ],
         staff: [_specialists[0], _specialists[1]],
+        bufferTimeMinutes: 45, // 45 mins setup/travel
       ),
       WeddingPackage(
         name: 'Engagement Radiance',
@@ -275,6 +276,7 @@ class SalonDetailsController extends ChangeNotifier {
           ),
         ],
         staff: [_specialists[2]],
+        bufferTimeMinutes: 30,
       ),
     ]);
   }
@@ -449,7 +451,10 @@ class SalonDetailsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  String calculateTotalDuration(List<Service> services) {
+  String calculateTotalDuration(
+    List<Service> services, {
+    int bufferMinutes = 0,
+  }) {
     int totalMinutes = 0;
     for (final service in services) {
       final durationLower = service.duration.toLowerCase();
@@ -461,6 +466,9 @@ class SalonDetailsController extends ChangeNotifier {
         totalMinutes += mins;
       }
     }
+
+    // Add buffer
+    totalMinutes += bufferMinutes;
 
     if (totalMinutes == 0) return '0 Mins';
 

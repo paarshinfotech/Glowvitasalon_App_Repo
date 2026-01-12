@@ -16,6 +16,7 @@ class WeddingPackage {
   final String? imageUrl;
   final List<PackageService> services;
   final List<Specialist> staff;
+  final int bufferTimeMinutes;
 
   WeddingPackage({
     required this.name,
@@ -25,5 +26,6 @@ class WeddingPackage {
     this.imageUrl,
     required this.services,
     this.staff = const [],
+    this.bufferTimeMinutes = 30, // Default 30 mins for setup/travel
   });
 }
