@@ -45,7 +45,8 @@ flutter_icons:
 
 flutter_native_splash:
   color: "#4A2C3F"
-  image: "assets/images/GlowVita_logo.png"
+  image: "assets/images/GlowVita Final Logo.png"
   android_12:
     color: "#4A2C3F"
-    image: "assets/images/GlowVita_logo.png"
+    image: "assets/images/GlowVita Final Logo.png"
+    icon_background_color: "#4A2C3F"

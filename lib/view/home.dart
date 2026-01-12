@@ -38,6 +38,7 @@ class _HomeState extends State<Home> {
           return Scaffold(
             appBar: (_currentIndex == 0)
                 ? AppBar(
+                    automaticallyImplyLeading: false,
                     backgroundColor: Colors.white,
                     elevation: 0,
                     toolbarHeight: 70,

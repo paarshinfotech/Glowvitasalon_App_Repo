@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:glow_vita_salon/routes/app_routes.dart';
-import 'package:glow_vita_salon/view/home.dart';
 
 void main() {
   runApp(const MyApp());
@@ -26,7 +25,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const Home(),
+      initialRoute: AppRoutes.splash,
       onGenerateRoute: AppRoutes.generateRoute,
       debugShowCheckedModeBanner: false,
     );
