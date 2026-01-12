@@ -9,23 +9,26 @@ class CustomizePackageSheet extends StatelessWidget {
 
   const CustomizePackageSheet({super.key, required this.package});
 
-  static void show(
+  static Future<void> show(
     BuildContext context,
     SalonDetailsController controller,
     WeddingPackage package,
-  ) {
+  ) async {
+    // Check if package was already selected
+    final bool wasSelected = controller.selectedPackages.contains(package);
+
     // Ensure package services are initialized in controller
     // Only initialize if package is NOT already selected
-    if (!controller.selectedPackages.contains(package)) {
+    if (!wasSelected) {
       // Package not selected yet - initialize with default package services
+      // This effectively selects it temporarily so we can edit services live
       controller.setPackageServices(
         package,
         package.services.map((ps) => ps.service).toList(),
       );
     }
-    // If package IS selected, keep existing services (preserves user's changes)
 
-    showModalBottomSheet(
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -34,6 +37,14 @@ class CustomizePackageSheet extends StatelessWidget {
         child: CustomizePackageSheet(package: package),
       ),
     );
+
+    // If user accepted (true), we keep it selected.
+    // If user cancelled (false/null) AND it wasn't selected before, we revert (remove) it.
+    if ((result == null || result == false) && !wasSelected) {
+      if (controller.selectedPackages.contains(package)) {
+        controller.togglePackage(package);
+      }
+    }
   }
 
   @override
@@ -200,7 +211,8 @@ class CustomizePackageSheet extends StatelessWidget {
                                     Icons.close,
                                     color: Colors.white,
                                   ),
-                                  onPressed: () => Navigator.pop(context),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
                                 ),
                               ),
                             ),
@@ -663,7 +675,7 @@ class CustomizePackageSheet extends StatelessWidget {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.pop(context, false),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             side: BorderSide(color: Colors.grey.shade300),
@@ -686,7 +698,7 @@ class CustomizePackageSheet extends StatelessWidget {
                             )) {
                               controller.togglePackage(package);
                             }
-                            Navigator.pop(context);
+                            Navigator.pop(context, true);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(
@@ -791,7 +803,7 @@ class CustomizePackageSheet extends StatelessWidget {
                           ),
                         ),
                         IconButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.pop(context, false),
                           icon: const Icon(Icons.close),
                         ),
                       ],
