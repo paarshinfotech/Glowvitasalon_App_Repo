@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'package:glow_vita_salon/model/category.dart';
 import '../model/offers.dart';
 import '../model/product.dart';
@@ -46,9 +47,62 @@ class HomeController extends ChangeNotifier {
   List<Salon> recommendedSalons = [];
   List<Product> products = [];
 
+  StreamSubscription<bool>? _authSubscription;
+
   HomeController() {
     _fetchData();
     _getUserLocation();
+
+    // Listen for auth changes (Login/Logout)
+    _authSubscription = AuthController.onAuthStateChange.listen((isLoggedIn) {
+      if (isLoggedIn) {
+        // slight delay to ensure prefs are fully persisted and accessible
+        Future.delayed(const Duration(milliseconds: 200), () {
+          _refreshUserData();
+        });
+      } else {
+        userName = "Guest";
+        profileImageUrl = null;
+        notifyListeners();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshUserData() async {
+    final storedName = await AuthController.getUserName();
+    if (storedName.isNotEmpty && storedName != "Guest") {
+      userName = storedName;
+      notifyListeners();
+    }
+
+    // Always fetch profile if token exists to ensure we have data,
+    // especially if storedName was empty or default.
+    final token = await AuthController.getToken();
+    if (token != null) {
+      try {
+        final profile = await ApiService().getProfile(token);
+        final user = profile['user'] ?? profile['data']?['user'] ?? {};
+        final fName = user['firstName'] ?? user['name'] ?? '';
+        final lName = user['lastName'] ?? '';
+        final fullName = '$fName $lName'.trim();
+
+        if (fullName.isNotEmpty && fullName != userName) {
+          userName = fullName;
+        }
+        // Extract profile image if available
+        profileImageUrl =
+            user['avatar'] ?? user['profileImage'] ?? user['image'];
+        notifyListeners();
+      } catch (e) {
+        print("Error fetching profile name for home: $e");
+      }
+    }
   }
 
   String userName = "Guest";

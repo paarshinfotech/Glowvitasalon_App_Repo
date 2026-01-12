@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthController {
@@ -5,6 +6,10 @@ class AuthController {
   static const String _tokenKey = 'token';
   static const String _firstNameKey = 'firstName';
   static const String _lastNameKey = 'lastName';
+
+  static final StreamController<bool> _authStream =
+      StreamController<bool>.broadcast();
+  static Stream<bool> get onAuthStateChange => _authStream.stream;
 
   /// Save login data
   static Future<void> saveLogin(
@@ -21,6 +26,7 @@ class AuthController {
     ); // Saving as cookie-like entry as requested
     await prefs.setString(_firstNameKey, firstName);
     await prefs.setString(_lastNameKey, lastName);
+    _authStream.add(true);
   }
 
   /// Check login status
@@ -50,5 +56,6 @@ class AuthController {
     await prefs.remove(_tokenKey);
     await prefs.remove(_firstNameKey);
     await prefs.remove(_lastNameKey);
+    _authStream.add(false);
   }
 }

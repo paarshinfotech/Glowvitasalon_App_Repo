@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:glow_vita_salon/controller/salon_details_controller.dart';
 import 'package:glow_vita_salon/view/map_picker_screen.dart';
 import 'package:glow_vita_salon/view/widgets/salon_details/booking_dialogs.dart';
+import 'package:glow_vita_salon/controller/auth_controller.dart';
+import 'package:glow_vita_salon/view/widgets/login_bottom_sheet.dart';
 
 class SalonBottomNavBar extends StatelessWidget {
   final SalonDetailsController controller;
@@ -214,6 +216,24 @@ class SalonBottomNavBar extends StatelessWidget {
       priceWidget,
       ElevatedButton(
         onPressed: () async {
+          // Check Login Status
+          bool isLoggedIn = await AuthController.isLoggedIn();
+          if (!isLoggedIn) {
+            if (!context.mounted) return;
+            final result = await showModalBottomSheet<bool>(
+              context: context,
+              isScrollControlled: true,
+              builder: (context) => const LoginBottomSheet(),
+            );
+
+            if (result == true) {
+              isLoggedIn = true;
+            } else {
+              // User cancelled login
+              return;
+            }
+          }
+
           if (controller.selectedTime != null) {
             if (controller.serviceType == ServiceType.wedding) {
               BookingDialogs.showLocationPreferenceDialog(context, controller);

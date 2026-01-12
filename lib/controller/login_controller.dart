@@ -87,18 +87,34 @@ class LoginController {
 
         print("DEBUG: Extracted Token: $token"); // Debug print
 
-        final user =
-            result['user'] as Map<String, dynamic>? ??
-            (result['data'] != null && result['data']['user'] != null
-                ? result['data']['user'] as Map<String, dynamic>
-                : {});
+        // Robust User Extraction
+        Map<String, dynamic> user = {};
+        if (result['user'] != null && result['user'] is Map) {
+          user = result['user'];
+        } else if (result['data'] != null) {
+          if (result['data'] is Map && result['data']['user'] != null) {
+            user = result['data']['user'];
+          } else if (result['data'] is Map &&
+              result['data']['profile'] != null) {
+            user = result['data']['profile'];
+          } else if (result['data'] is Map) {
+            // Sometimes user data is directly in 'data'
+            user = result['data'] as Map<String, dynamic>;
+          }
+        }
 
         final firstName =
-            user['firstName'] as String? ?? user['name'] as String? ?? '';
+            user['firstName'] as String? ??
+            user['name'] as String? ??
+            user['username'] as String? ??
+            user['fullname'] as String? ??
+            'User';
         final lastName = user['lastName'] as String? ?? '';
 
         // Debug
-        print("DEBUG LOGGING IN: Name=$firstName $lastName");
+        if (kDebugMode) {
+          print("DEBUG LOGGING IN: Name=$firstName $lastName");
+        }
 
         if (token.isNotEmpty) {
           await AuthController.saveLogin(token, firstName, lastName);

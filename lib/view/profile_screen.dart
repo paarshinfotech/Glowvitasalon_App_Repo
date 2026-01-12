@@ -122,8 +122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context); // Close dialog first
-                    _logout();
+                    Navigator.pushReplacementNamed(context, AppRoutes.home);
                   },
                   child: const Text("Logout"),
                 ),
@@ -140,7 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(
       context,
-      AppRoutes.login,
+      AppRoutes.home,
       (route) => false,
     );
   }

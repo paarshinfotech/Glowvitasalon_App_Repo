@@ -1,3 +1,4 @@
+import 'package:glow_vita_salon/controller/login_controller.dart';
 import '../model/register_request.dart';
 import '../services/api_service.dart';
 
@@ -11,7 +12,7 @@ class RegisterController {
   String pincode = '';
   String password = '';
   String confirmPassword = '';
-  
+
   // Location data
   double? lat;
   double? lng;
@@ -38,7 +39,7 @@ class RegisterController {
     lat = latitude;
     lng = longitude;
     locationDisplay = displayAddress;
-    
+
     // Auto-fill city, state, pincode if provided
     if (cityValue != null && cityValue.isNotEmpty) {
       city = cityValue;
@@ -49,7 +50,7 @@ class RegisterController {
     if (pincodeValue != null && pincodeValue.isNotEmpty) {
       pincode = pincodeValue;
     }
-    
+
     onStateChanged?.call();
   }
 
@@ -115,6 +116,38 @@ class RegisterController {
       return result;
     } catch (e) {
       errorMessage = e.toString().replaceAll('Exception: ', '');
+      isLoading = false;
+      onStateChanged?.call();
+      return false;
+    }
+  }
+
+  // Register and then immediately login
+  Future<bool> registerAndLogin() async {
+    final registerSuccess = await register();
+    if (!registerSuccess) return false;
+
+    // Start Login Process
+    isLoading = true;
+    onStateChanged?.call();
+
+    try {
+      final loginController = LoginController();
+      loginController.setEmail(email);
+      loginController.setPassword(password);
+
+      final loginSuccess = await loginController.login();
+
+      isLoading = false;
+      if (!loginSuccess) {
+        errorMessage =
+            loginController.errorMessage ??
+            "Registration successful but login failed.";
+      }
+      onStateChanged?.call();
+      return loginSuccess;
+    } catch (e) {
+      errorMessage = "Registration successful but login failed: $e";
       isLoading = false;
       onStateChanged?.call();
       return false;
