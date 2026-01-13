@@ -287,4 +287,36 @@ class ApiService {
       );
     }
   }
+
+  Future<bool> updateProfile(String token, Map<String, dynamic> data) async {
+    final url = Uri.parse('$baseUrl/api/profile');
+
+    // Token handling
+    String rawToken = token;
+    if (token.startsWith('Bearer ')) {
+      rawToken = token.substring(7);
+    }
+    final authHeader = token.startsWith('Bearer ') ? token : 'Bearer $token';
+
+    print("DEBUG: Updating Profile at $url with data: $data");
+
+    final response = await http.put(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": authHeader,
+        "Cookie": "token=$rawToken",
+      },
+      body: jsonEncode(data),
+    );
+
+    print("UPDATE RESPONSE: ${response.statusCode} - ${response.body}");
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      throw Exception('Failed to update profile: ${response.body}');
+    }
+  }
 }

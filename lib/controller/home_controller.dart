@@ -58,7 +58,7 @@ class HomeController extends ChangeNotifier {
       if (isLoggedIn) {
         // slight delay to ensure prefs are fully persisted and accessible
         Future.delayed(const Duration(milliseconds: 200), () {
-          _refreshUserData();
+          refreshUserData();
         });
       } else {
         userName = "Guest";
@@ -74,7 +74,7 @@ class HomeController extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<void> _refreshUserData() async {
+  Future<void> refreshUserData() async {
     final storedName = await AuthController.getUserName();
     if (storedName.isNotEmpty && storedName != "Guest") {
       userName = storedName;

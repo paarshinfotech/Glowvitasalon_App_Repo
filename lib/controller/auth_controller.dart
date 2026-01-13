@@ -29,6 +29,13 @@ class AuthController {
     _authStream.add(true);
   }
 
+  /// Update user details only
+  static Future<void> updateUser(String firstName, String lastName) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_firstNameKey, firstName);
+    await prefs.setString(_lastNameKey, lastName);
+  }
+
   /// Check login status
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();

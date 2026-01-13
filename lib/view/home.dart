@@ -45,8 +45,12 @@ class _HomeState extends State<Home> {
                     title: Row(
                       children: [
                         GestureDetector(
-                          onTap: () {
-                            Navigator.pushNamed(context, AppRoutes.profile);
+                          onTap: () async {
+                            await Navigator.pushNamed(
+                              context,
+                              AppRoutes.profile,
+                            );
+                            controller.refreshUserData();
                           },
                           child: Row(
                             children: [

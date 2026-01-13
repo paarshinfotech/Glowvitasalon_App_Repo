@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:glow_vita_salon/controller/auth_controller.dart';
 import 'package:glow_vita_salon/routes/app_routes.dart';
 import 'package:glow_vita_salon/services/api_service.dart';
+import 'package:glow_vita_salon/view/widgets/location_picker_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,6 +20,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String city = "";
   String state = "";
   String pincode = "";
+  String mobile = "";
   String? profileImageUrl;
 
   @override
@@ -61,20 +63,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final apiService = ApiService();
       final response = await apiService.getProfile(token);
 
-      // Assuming response['user'] contains user data based on typical structures
-      // Adjust if your API returns flattened structure
-      final userData = response['user'] ?? response['data'] ?? response;
+      // Safe extraction of user object without forced casting
+      dynamic userData = response;
+      // response is guaranteed to be Map<String, dynamic> by ApiService
+      if (response['user'] != null && response['user'] is Map) {
+        userData = response['user'];
+      } else if (response['data'] != null) {
+        final data = response['data'];
+        if (data is Map) {
+          if (data['user'] != null && data['user'] is Map) {
+            userData = data['user'];
+          } else {
+            userData = data;
+          }
+        }
+      }
+
+      // Ensure userData is a Map before accessing
+      if (userData is! Map) {
+        userData = {};
+      }
+
+      print("DEBUG: User Data Extraction: $userData");
 
       if (mounted) {
         setState(() {
-          // isLoggedIn = true; // Removed locally managed state since we redirect otherwise
-          String fullName = userData['name'] ?? userData['firstName'] ?? "User";
+          // Robustly handle fields that might be null or not strings
+          String fullName =
+              userData['name']?.toString() ??
+              userData['firstName']?.toString() ??
+              "User";
 
           if (userData['firstName'] != null) {
-            firstName = userData['firstName'];
-            lastName = userData['lastName'] ?? "";
+            firstName = userData['firstName'].toString();
+            // Handle potentially null lastName
+            lastName = userData['lastName']?.toString() ?? "";
           } else {
-            // Split name if only 'name' field exists
             if (fullName.contains(' ')) {
               var parts = fullName.split(' ');
               firstName = parts[0];
@@ -85,50 +109,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
             }
           }
 
-          email = userData['email'] ?? "";
-          city = userData['city'] ?? "";
-          state = userData['state'] ?? "";
-          pincode = userData['pincode'] ?? "";
-          // profileImageUrl = userData['avatar']; // If API provides image
+          // Use .toString() to be safe if API returns numbers or weird types
+          email = userData['email']?.toString() ?? "abc@gmail.com";
+
+          if (email == "abc@gmail.com") {
+            // Fallback triggered, let's look for other keys
+            print(
+              "DEBUG ALERT: Email not found in standard keys. Available keys: ${userData.keys}",
+            );
+
+            // Try to find ANY key that looks like email
+            for (var k in userData.keys) {
+              if (k.toString().toLowerCase().contains('email')) {
+                email = userData[k].toString();
+                print("DEBUG: Found alternative email key: $k -> $email");
+                break;
+              }
+            }
+
+            // If still fallback, SHOW DIALOG for USER to see
+            if (email == "abc@gmail.com" && mounted) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text("Debug: Email Missing"),
+                    content: SingleChildScrollView(
+                      child: Text("Raw Data:\n$userData"),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text("OK"),
+                      ),
+                    ],
+                  ),
+                );
+              });
+            }
+          }
+
+          mobile = userData['mobileNo']?.toString() ?? "";
+          city = userData['city']?.toString() ?? "";
+          state = userData['state']?.toString() ?? "";
+          pincode = userData['pincode']?.toString() ?? "";
+          // profileImageUrl = userData['avatar'];
+
+          print("DEBUG: Set State -> Email: '$email', Mobile: '$mobile'");
           isLoading = false;
         });
       }
     } catch (e) {
       print("Error fetching profile: $e");
-
+      // ... error handling
       if (mounted) {
         setState(() {
           isLoading = false;
-          // Decide if error means logged out or just network error.
-          // For now, keep as is, but maybe user wants retry?
-          // If 401, we should probably set isLoggedIn = false.
-          if (e.toString().contains("401")) {
-            AuthController.logout();
-          }
-        });
-
-        if (isLoggedIn) {
-          // Show detailed error dialog for debugging only if we think we are logged in
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text("Profile Error"),
-              content: SingleChildScrollView(child: Text(e.toString())),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("OK"),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushReplacementNamed(context, AppRoutes.home);
-                  },
-                  child: const Text("Logout"),
-                ),
-              ],
-            ),
-          );
-        }
+        }); // Ensure loading stops
       }
     }
   }
@@ -415,11 +452,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showEditDetailsForm(BuildContext context) {
+    print("DEBUG: Opening Edit Form with Email: '$email'");
     final TextEditingController fNameController = TextEditingController(
       text: firstName,
     );
     final TextEditingController lNameController = TextEditingController(
       text: lastName,
+    );
+    final TextEditingController emailController = TextEditingController(
+      text: email,
+    );
+    final TextEditingController mobileController = TextEditingController(
+      text: mobile,
     );
     final TextEditingController cityController = TextEditingController(
       text: city,
@@ -445,56 +489,141 @@ class _ProfileScreenState extends State<ProfileScreen> {
             right: 20,
             top: 20,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Edit Details',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              _buildTextField("First Name", fNameController),
-              const SizedBox(height: 12),
-              _buildTextField("Last Name", lNameController),
-              const SizedBox(height: 12),
-              _buildTextField("City", cityController),
-              const SizedBox(height: 12),
-              _buildTextField("State", stateController),
-              const SizedBox(height: 12),
-              _buildTextField("Pincode", pincodeController, isNumber: true),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    firstName = fNameController.text;
-                    lastName = lNameController.text;
-                    city = cityController.text;
-                    state = stateController.text;
-                    pincode = pincodeController.text;
-                  });
-                  // TODO: Call API to update profile here if needed
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A2C3F),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Edit Details',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                _buildTextField("First Name", fNameController),
+                const SizedBox(height: 12),
+                _buildTextField("Last Name", lNameController),
+                const SizedBox(height: 12),
+                _buildTextField(
+                  "Email",
+                  emailController
+                    ..text = email.isEmpty ? "abc@gmail.com" : email,
+                  readOnly: true,
+                ),
+                const SizedBox(height: 12),
+                _buildTextField("Mobile", mobileController, readOnly: true),
+                const SizedBox(height: 12),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Address Details",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    TextButton.icon(
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LocationPickerScreen(),
+                          ),
+                        );
+
+                        if (result != null && result is Map) {
+                          cityController.text = result['city'] ?? "";
+                          stateController.text = result['state'] ?? "";
+                          pincodeController.text = result['pincode'] ?? "";
+                        }
+                      },
+                      icon: const Icon(Icons.map, color: Color(0xFF4A2C3F)),
+                      label: const Text(
+                        "Pick from Map",
+                        style: TextStyle(color: Color(0xFF4A2C3F)),
+                      ),
+                    ),
+                  ],
+                ),
+
+                _buildTextField("City", cityController),
+                const SizedBox(height: 12),
+                _buildTextField("State", stateController),
+                const SizedBox(height: 12),
+                _buildTextField("Pincode", pincodeController, isNumber: true),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      // Update Local State for immediate feedback
+                      // But we should really wait for API
+
+                      // Call API
+                      String? token = await AuthController.getToken();
+                      if (token == null) {
+                        final prefs = await SharedPreferences.getInstance();
+                        token = prefs.getString('cookie');
+                      }
+
+                      if (token != null) {
+                        final apiService = ApiService();
+                        final Map<String, dynamic> updateData = {
+                          "firstName": fNameController.text,
+                          "lastName": lNameController.text,
+                          "city": cityController.text,
+                          "state": stateController.text,
+                          "pincode": pincodeController.text,
+                          // Mobile and Email are read-only
+                        };
+
+                        await apiService.updateProfile(token, updateData);
+                        await AuthController.updateUser(
+                          fNameController.text,
+                          lNameController.text,
+                        );
+
+                        if (context.mounted) {
+                          setState(() {
+                            firstName = fNameController.text;
+                            lastName = lNameController.text;
+                            city = cityController.text;
+                            state = stateController.text;
+                            pincode = pincodeController.text;
+                          });
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Profile updated successfully!"),
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Error updating profile: $e")),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4A2C3F),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    "Save Changes",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-                child: const Text(
-                  "Save Changes",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         );
       },
@@ -505,12 +634,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     String label,
     TextEditingController controller, {
     bool isNumber = false,
+    bool readOnly = false,
   }) {
     return TextField(
       controller: controller,
+      readOnly: readOnly,
+      style: const TextStyle(
+        color: Colors.black,
+      ), // Ensure text is black/visible
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
       decoration: InputDecoration(
         labelText: label,
+        filled: readOnly,
+        fillColor: readOnly ? Colors.grey.shade100 : null,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
